@@ -34,13 +34,26 @@ def compute_quantile(data, quantile):
 def add_wildcard_to_addr(addr):
     return '%'+addr.strip()+'%'
 
-
 def __file_to_array(filename, separator):
     fileobj = open(filename, "r")
     str_ = fileobj.read()
     fileobj.close()
     return str_.split(separator)
 
+
+#Read tstat logfile and match it by HAR file
+def read_tstatlog(tstalogfile, harfile, separator, client_id):
+    strarray = Parser.parseTstat(tstalogfile, separator, client_id)
+    rows = []
+    for line in strarray:
+        try:
+            jsonstring = json.loads(line)
+            rows.append(jsonstring)
+        except ValueError:
+            print line
+	    continue
+    full_rows = Parser.updatebyHar(rows, harfile)
+    return full_rows
 
 #Read json formatted file.
 def read_file(filename, separator):
