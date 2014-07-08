@@ -201,7 +201,7 @@ if (system.args.length === 1) {
     var called = 0;
     var t_start = new Date().getTime();
                 
-    page.open('http://' + page.address, function (status) {
+    page.open(page.address, function (status) {
 	
         if (status !== 'success') {
             console.log('FAIL to load: ' + page.address);
