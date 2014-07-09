@@ -22,6 +22,10 @@ import Utils
 import sys
 from Configuration import Configuration
 import logging
+import fpformat
+import random
+import datetime
+import time
 import json
 
 logger = logging.getLogger('DBClient')
@@ -42,6 +46,31 @@ class DBClient:
     def create_tables(self):
         self.create_plugin_table()
         self.create_activemeasurement_table()
+
+    def create_idtable(self):
+	cursor = self.conn.cursor()	
+	cursor.execute('''CREATE TABLE IF NOT EXISTS client_id (probe_id INT4, first_start TEXT)''')	
+	self.conn.commit()
+
+    def get_clientID(self):
+	client_id = 0	
+	query = "SELECT probe_id FROM client_id"
+        res = self.execute_query(query)
+	if res != []:
+            client_id = int(res[0][0])
+	else:
+	    client_id = self.create_clientID()
+        return client_id
+
+    def create_clientID(self):
+	cursor = self.conn.cursor()        
+	client_id = fpformat.fix(random.random()*2147483647,0)		# int4 range in PgSQL: -2147483648 to +2147483647
+	ts = time.time()
+	st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+	state = '''INSERT INTO client_id VALUES ('%s', '%s')'''% (client_id, st)
+	cursor.execute(state)
+        self.conn.commit()
+	return client_id
 
     def create_plugin_table(self):
         #create a Table for the Firefox plugin
@@ -116,23 +145,30 @@ class DBClient:
         insert_query = 'INSERT INTO ' + table_name + ' (%s) values %r RETURNING row_id'
         update_query = 'UPDATE ' + table_name + ' SET mem_percent = %s, cpu_percent = %s where row_id = %d'
         for obj in datalist:
-            url = DBClient._unicode_to_ascii(obj['session_url'])
-            cols = ', '.join(obj)
-            to_execute = insert_query % (cols, tuple(DBClient._convert_to_ascii(obj.values())))
-            #print to_execute
-            cursor.execute(to_execute)
-            self.conn.commit()
-            row_id = cursor.fetchone()[0]
-            to_update = update_query % (stats[url]['mem'], stats[url]['cpu'], row_id)
-            cursor.execute(to_update)
-            self.conn.commit()
+	    #print obj
+            if obj.has_key("session_url"):
+		url = DBClient._unicode_to_ascii(obj['session_url'])
+            	cols = ', '.join(obj)
+            	to_execute = insert_query % (cols, tuple(DBClient._convert_to_ascii(obj.values())))
+            	#print to_execute
+            	cursor.execute(to_execute)
+            	self.conn.commit()
+            	row_id = cursor.fetchone()[0]
+            	to_update = update_query % (stats[url]['mem'], stats[url]['cpu'], row_id)
+            	cursor.execute(to_update)
+            	self.conn.commit()
 
         self._generate_sid_on_table()
         
-    def load_to_db(self, stats):
-        datalist = Utils.read_file(self.dbconfig['pluginoutfile'], "\n")
-        if len(datalist) > 0:
-            self.write_plugin_into_db(datalist, stats)
+    def load_to_db(self, stats, browser):
+	if browser == 'firefox':
+            datalist = Utils.read_file(self.dbconfig['pluginoutfile'], "\n")
+	else:
+	    self.create_idtable()
+	    client_id = self.get_clientID()
+	    datalist = Utils.read_tstatlog(self.dbconfig['tstatfile'], self.dbconfig['harfile'], "\n", client_id)
+	if len(datalist) > 0:
+            self.write_plugin_into_db(datalist, stats)	    
 
     def execute_query(self, query):
         cur = self.conn.cursor()
