@@ -32,14 +32,6 @@ BKP_FOLDER=$BKP_FOLDER_HOME/$NOW
 
 mkdir $BKP_FOLDER
 
-ffxId=`pgrep firefox`
-if [[ $ffxId ]]
-then
-	echo "There are Firefox running" 
-	echo "Please quit current Firefox process and try again" 
-	exit 1 
-fi
-
 ./probe/runTstatLiveCapture probe/TstatLiveCapture.py start $conf_file
 sleep 2
 /usr/bin/python probe.py $nr_runs $conf_file $BKP_FOLDER

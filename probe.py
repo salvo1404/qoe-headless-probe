@@ -26,8 +26,6 @@ if __name__ == '__main__':
     backupdir = sys.argv[3]
     logger = logging.getLogger('probe')
     config = Configuration(conf_file)
-    logger.info('Starting Tstat daemon')
-    launch_tstat_daemon(config)
     browser = config.get_default_browser()['browser']
     if browser == 'firefox':
         plugin_out_file = config.get_database_configuration()['pluginoutfile']
@@ -62,7 +60,7 @@ if __name__ == '__main__':
         if browser == 'phantomjs':
             new_har = backupdir + '/' + harfile.split('/')[-1] + '.run%d' % i
             os.rename(harfile, new_har)
-            logger.debug('Saved plugin file for run n.%d: %s' % (i,new_fn))
+        logger.debug('Saved plugin file for run n.%d: %s' % (i,new_fn))
 
         monitor = Monitor(config)
         monitor.run_active_measurement()
@@ -74,4 +72,3 @@ if __name__ == '__main__':
 
     jc = JSONClient(config)
     jc.prepare_and_send()
-

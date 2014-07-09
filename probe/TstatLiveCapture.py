@@ -35,8 +35,6 @@ import logging
 import logging.config
 
 
-logger = logging.getLogger('probe')
-
 class TstatLiveCapture():
     def __init__(self, config):
         self.tstatconfig = config.get_tstat_configuration()
@@ -74,5 +72,6 @@ if __name__ == "__main__":
     if len(sys.argv) != 3:
         exit("%s: You MUST specify a config file" % sys.argv[0])
     logging.config.fileConfig('logging.conf')
+    logger = logging.getLogger('TstatLiveCapture')
     conf_file = sys.argv[2]
     main(conf_file)

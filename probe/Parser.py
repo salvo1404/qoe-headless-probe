@@ -101,13 +101,12 @@ def updatebyHar(tstatdata,filename):
             firstByte = entry["TimeToFirstByte"].replace('T', ' ')[0:-1]
             endTS = entry["endtimeTS"].replace('T', ' ')[0:-1]
 
-        for field in entry["request"]["headers"]:
-            if field["name"] == "httpid":
-                http_id = field["value"]
-            else:
-                http_id = "null"
-                request_host = entry["request"]["url"].split('/')[2]
-
+            for field in entry["request"]["headers"]:
+            	if field["name"] == "httpid":
+                	http_id = field["value"]
+            	else:
+                	http_id = "null"
+            request_host = entry["request"]["url"].split('/')[2]
             request_host=request_host.split(':')[0] # e.g. 'gzip.static.woot.com:9090'
             method = entry["request"]["method"]
             httpVersion = entry["request"]["httpVersion"]
@@ -141,7 +140,7 @@ def updatebyHar(tstatdata,filename):
                     unicode('end_time'): unicode(endTS), unicode('rcv_time'): unicode(receive), unicode('tab_id'): unicode('0'),
                     unicode('ping_gateway'): unicode('0'), unicode('ping_google'): unicode('0'), unicode('annoy'): unicode('0')}
 
-                line.update(fields_to_add)
+                    line.update(fields_to_add)
                 #print line
             #  End for cicle (matching tstatdata)
 
