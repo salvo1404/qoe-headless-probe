@@ -34,6 +34,9 @@ from JSONClient import JSONClient
 import logging
 import logging.config
 
+
+logger = logging.getLogger('probe')
+
 class TstatLiveCapture():
     def __init__(self, config):
         self.tstatconfig = config.get_tstat_configuration()
@@ -41,37 +44,35 @@ class TstatLiveCapture():
         logger.debug('Loaded configuration')
 
     def start(self):
-	logger.info('Starting Tstat Live Capture')
-	out = open(self.tstatconfig['logfile'], 'a')
-	cmdstr = "%s/tstat/tstat -i %s -l -u -E 1500 -N %s -s %s" % (self.tstatconfig['dir'], self.tstatconfig['netinterface'], 
-								self.tstatconfig['netfile'], self.tstatconfig['tstatout'])
-	#logger.info(cmdstr)
-	proc = subprocess.Popen(cmdstr.split(), stdout=out, stderr=subprocess.PIPE)
-	logger.info('Tstat is running, PID = ' + str(proc.pid))
-	
+        logger.info('Starting Tstat Live Capture')
+        out = open(self.tstatconfig['logfile'], 'a')
+        cmdstr = "%s/tstat/tstat -i %s -l -u -E 1500 -N %s -s %s" % (self.tstatconfig['dir'], self.tstatconfig['netinterface'],
+                                    self.tstatconfig['netfile'], self.tstatconfig['tstatout'])
+        #logger.info(cmdstr)
+        proc = subprocess.Popen(cmdstr.split(), stdout=out, stderr=subprocess.PIPE)
+        logger.info('Tstat is running, PID = ' + str(proc.pid))
+
     def stop(self, pid):
-	logger.info('Stopping Tstat Live Capture, PID = ' + pid)
-	os.kill(int(pid), signal.SIGTERM)
-	
+        logger.info('Stopping Tstat Live Capture, PID = ' + pid)
+        os.kill(int(pid), signal.SIGTERM)
+
 
 def main(conf_file):
     config = Configuration(conf_file)
     tstat = TstatLiveCapture(config)
     browser = config.get_default_browser()['browser']
     if sys.argv[1] == "start":
-	if browser == 'phantomjs':
-	    tstat.start()    
-	else:
-	    logger.debug("Tstat won't start - browser set as firefox")
+        if browser == 'phantomjs':
+            tstat.start()
+        else:
+            logger.debug("Tstat won't start - browser set as firefox")
     else:
-	#logger.debug('Wrong command ! ')
-	tstat.stop(sys.argv[1])
+        tstat.stop(sys.argv[1])
         
     
 if __name__ == "__main__":
     if len(sys.argv) != 3:
         exit("%s: You MUST specify a config file" % sys.argv[0])
     logging.config.fileConfig('logging.conf')
-    logger = logging.getLogger('TstatLiveCapture')
     conf_file = sys.argv[2]
     main(conf_file)

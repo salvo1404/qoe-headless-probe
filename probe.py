@@ -10,8 +10,13 @@ from probe.PJSLauncher import PJSLauncher
 from probe.DBClient import DBClient
 from probe.ActiveMeasurement import Monitor
 from probe.JSONClient import JSONClient
+import subprocess
 
 logging.config.fileConfig('logging.conf')
+
+def launch_tstat_daemon(config):
+    p = subprocess.Popen(cmdstr)
+
 
 if __name__ == '__main__':
     if len(sys.argv) < 4:
@@ -21,17 +26,19 @@ if __name__ == '__main__':
     backupdir = sys.argv[3]
     logger = logging.getLogger('probe')
     config = Configuration(conf_file)
-    browser = config.get_default_browser()['browser']    
+    logger.info('Starting Tstat daemon')
+    launch_tstat_daemon(config)
+    browser = config.get_default_browser()['browser']
     if browser == 'firefox':
-	plugin_out_file = config.get_database_configuration()['pluginoutfile']
-	launcher = FFLauncher(config)
+        plugin_out_file = config.get_database_configuration()['pluginoutfile']
+        launcher = FFLauncher(config)
     elif browser == 'phantomjs':
-	plugin_out_file = config.get_database_configuration()['tstatfile']
-	harfile = config.get_database_configuration()['harfile']
-	launcher = PJSLauncher(config)
+        plugin_out_file = config.get_database_configuration()['tstatfile']
+        harfile = config.get_database_configuration()['harfile']
+        launcher = PJSLauncher(config)
     else:
-	logger.debug('Browser set as: %s - WRONG BROWSER !!' % browser)
-	exit(0)
+        logger.debug('Browser set as: %s - WRONG BROWSER !!' % browser)
+        exit(0)
     logger.debug('Browser set as: %s' % browser)
 
     logger.debug('Backup dir set at: %s' % backupdir)
@@ -49,16 +56,15 @@ if __name__ == '__main__':
         dbcli.load_to_db(stats, browser)
         logger.debug('Ended browsing run n.%d' % i)
 
-	new_fn = backupdir + '/' + plugin_out_file.split('/')[-1] + '.run%d' % i        
-	shutil.copyfile(plugin_out_file, new_fn)	# Quick and dirty not to delete Tstat log
-	open(plugin_out_file, 'w').close()	
-	if browser == 'phantomjs':
-	    new_har = backupdir + '/' + harfile.split('/')[-1] + '.run%d' % i
-	    os.rename(harfile, new_har)
-        logger.debug('Saved plugin file for run n.%d: %s' % (i,new_fn))
-        
-	       
-	monitor = Monitor(config)
+        new_fn = backupdir + '/' + plugin_out_file.split('/')[-1] + '.run%d' % i
+        shutil.copyfile(plugin_out_file, new_fn)	# Quick and dirty not to delete Tstat log
+        open(plugin_out_file, 'w').close()
+        if browser == 'phantomjs':
+            new_har = backupdir + '/' + harfile.split('/')[-1] + '.run%d' % i
+            os.rename(harfile, new_har)
+            logger.debug('Saved plugin file for run n.%d: %s' % (i,new_fn))
+
+        monitor = Monitor(config)
         monitor.run_active_measurement()
         logger.debug('Ended Active probing for run n.%d' % i)
         for tracefile in os.listdir('.'):
@@ -68,4 +74,4 @@ if __name__ == '__main__':
 
     jc = JSONClient(config)
     jc.prepare_and_send()
-    
+

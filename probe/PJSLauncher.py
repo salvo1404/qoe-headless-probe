@@ -100,7 +100,7 @@ class PJSLauncher():
         #out = open(self.config['logfile'], 'a')
         logger.info('Browsing %s', url)
         res = {'mem': 0.0, 'cpu': 0.0}
-	cmdstr = "%s/bin/phantomjs %s %s" % (self.pjs_config['dir'], self.pjs_config['script'], url)        
+        cmdstr = "%s/bin/phantomjs %s %s" % (self.pjs_config['dir'], self.pjs_config['script'], url)
         cmd = BrowserThread(cmdstr, self.pjs_config['thread_outfile'], self.pjs_config['thread_errfile'])
         t = int(self.pjs_config['thread_timeout'])
         flag, mem, cpu = cmd.run(timeout=t)
