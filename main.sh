@@ -32,14 +32,9 @@ BKP_FOLDER=$BKP_FOLDER_HOME/$NOW
 
 mkdir $BKP_FOLDER
 
-./probe/runTstatLiveCapture probe/TstatLiveCapture.py start $conf_file
+
 sleep 2
 /usr/bin/python probe.py $nr_runs $conf_file $BKP_FOLDER
-tstatId=`pgrep tstat`
-if [[ $tstatId ]]
-then
-        ./probe/runTstatLiveCapture probe/TstatLiveCapture.py $(printf $tstatId) $conf_file
-fi
-#./probe/runActiveMonitor probe/ActiveMonitor.py $conf_file
+
 echo "Done."
 

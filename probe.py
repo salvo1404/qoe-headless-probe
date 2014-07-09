@@ -10,12 +10,24 @@ from probe.PJSLauncher import PJSLauncher
 from probe.DBClient import DBClient
 from probe.ActiveMeasurement import Monitor
 from probe.JSONClient import JSONClient
-import subprocess
+from probe.TstatLiveCapture import TstatLiveCapture
+import time
+from subprocess import Popen, PIPE
 
 logging.config.fileConfig('logging.conf')
 
-def launch_tstat_daemon(config):
-    p = subprocess.Popen(cmdstr)
+
+def launch_tstat_deamon(configuration):
+	cmd = "./probe/runTstatLiveCapture probe/TstatLiveCapture.py start %s" % configuration
+	FNULL = open(os.devnull, 'w')
+	p = Popen(cmd, stdout=FNULL, stderr=FNULL, shell=True)
+	
+def stop_tstat_deamon(configuration):
+	grep = Popen(['pgrep', 'tstat'], stdout=PIPE, stderr=PIPE)
+	res = grep.communicate()
+	cmd = "./probe/runTstatLiveCapture probe/TstatLiveCapture.py %s %s" %(res[0][0:-1],configuration)
+	FNULL = open(os.devnull, 'w')	
+	p = Popen(cmd, stdout=FNULL, stderr=FNULL, shell=True)  
 
 
 if __name__ == '__main__':
@@ -43,32 +55,36 @@ if __name__ == '__main__':
     dbcli = DBClient(config)
     dbcli.create_tables()
     logger.debug('Starting nr_runs (%d)' % nun_runs)
+    pjs_config = config.get_phantomjs_configuration()
     for i in range(nun_runs):
-        stats = launcher.browse_urls()
-        if stats is None:
-            logger.warning('Problem in session %d.. skipping' % i)
-            continue
-        if not os.path.exists(plugin_out_file):
-            logger.error('Plugin outfile missing.')
-            exit("Plugin outfile missing.")
-        dbcli.load_to_db(stats, browser)
-        logger.debug('Ended browsing run n.%d' % i)
+      	launch_tstat_deamon(conf_file)	
+      	for url in open(pjs_config['urlfile']):		
+		stats = launcher._browse_url(url)
+		if stats is None:
+		    logger.warning('Problem in session %d.. skipping' % i)
+		    continue
+		if not os.path.exists(plugin_out_file):
+		    logger.error('Plugin outfile missing.')
+		    exit("Plugin outfile missing.")
+		stop_tstat_deamon(conf_file)
+		dbcli.load_to_db(stats, browser)
+		logger.debug('Ended browsing run n.%d' % i)	
 
-        new_fn = backupdir + '/' + plugin_out_file.split('/')[-1] + '.run%d' % i
-        shutil.copyfile(plugin_out_file, new_fn)	# Quick and dirty not to delete Tstat log
-        open(plugin_out_file, 'w').close()
-        if browser == 'phantomjs':
-            new_har = backupdir + '/' + harfile.split('/')[-1] + '.run%d' % i
-            os.rename(harfile, new_har)
-        logger.debug('Saved plugin file for run n.%d: %s' % (i,new_fn))
-
-        monitor = Monitor(config)
-        monitor.run_active_measurement()
-        logger.debug('Ended Active probing for run n.%d' % i)
-        for tracefile in os.listdir('.'):
-            if tracefile.endswith('.traceroute'):
-                new_fn_trace = backupdir + '/' + tracefile + '.run%d' % i
-                os.rename(tracefile, new_fn_trace)
+		new_fn = backupdir + '/' + plugin_out_file.split('/')[-1] + '.run%d' % i
+		shutil.copyfile(plugin_out_file, new_fn)	# Quick and dirty not to delete Tstat log
+		open(plugin_out_file, 'w').close()
+		if browser == 'phantomjs':
+		    new_har = backupdir + '/' + harfile.split('/')[-1] + '.run%d' % i
+		    os.rename(harfile, new_har)
+		logger.debug('Saved plugin file for run n.%d: %s' % (i,new_fn))
+	
+		monitor = Monitor(config)
+		monitor.run_active_measurement()
+		logger.debug('Ended Active probing for run n.%d' % i)
+		for tracefile in os.listdir('.'):
+		    if tracefile.endswith('.traceroute'):
+		        new_fn_trace = backupdir + '/' + tracefile + '.run%d' % i
+		        os.rename(tracefile, new_fn_trace)
 
     jc = JSONClient(config)
     jc.prepare_and_send()

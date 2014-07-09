@@ -25,6 +25,7 @@ import socket
 import struct
 import re
 import os
+import time
 from TracerouteParser import TracerouteParser
 import json
 from DBClient import DBClient
@@ -34,11 +35,13 @@ from JSONClient import JSONClient
 import logging
 import logging.config
 
+logger = logging.getLogger('TstatLiveCapture')
+
 
 class TstatLiveCapture():
     def __init__(self, config):
         self.tstatconfig = config.get_tstat_configuration()
-        #self.tstatpid = 0
+        #self.tstatpid = 0	
         logger.debug('Loaded configuration')
 
     def start(self):
@@ -49,10 +52,12 @@ class TstatLiveCapture():
         #logger.info(cmdstr)
         proc = subprocess.Popen(cmdstr.split(), stdout=out, stderr=subprocess.PIPE)
         logger.info('Tstat is running, PID = ' + str(proc.pid))
+	time.sleep(2)
 
     def stop(self, pid):
         logger.info('Stopping Tstat Live Capture, PID = ' + pid)
         os.kill(int(pid), signal.SIGTERM)
+	time.sleep(2)
 
 
 def main(conf_file):
@@ -65,8 +70,7 @@ def main(conf_file):
         else:
             logger.debug("Tstat won't start - browser set as firefox")
     else:
-        tstat.stop(sys.argv[1])
-        
+	tstat.stop(sys.argv[1])
     
 if __name__ == "__main__":
     if len(sys.argv) != 3:
