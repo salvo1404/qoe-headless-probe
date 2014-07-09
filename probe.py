@@ -56,9 +56,9 @@ if __name__ == '__main__':
     dbcli.create_tables()
     logger.debug('Starting nr_runs (%d)' % nun_runs)
     pjs_config = config.get_phantomjs_configuration()
-    for i in range(nun_runs):
-      	launch_tstat_deamon(conf_file)	
-      	for url in open(pjs_config['urlfile']):		
+    for i in range(nun_runs):      	
+      	for url in open(pjs_config['urlfile']):	
+		launch_tstat_deamon(conf_file)		
 		stats = launcher._browse_url(url)
 		if stats is None:
 		    logger.warning('Problem in session %d.. skipping' % i)
