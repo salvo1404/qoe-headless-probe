@@ -39,16 +39,10 @@ if __name__ == '__main__':
     logger = logging.getLogger('probe')
     config = Configuration(conf_file)
     browser = config.get_default_browser()['browser']
-    if browser == 'firefox':
-        plugin_out_file = config.get_database_configuration()['pluginoutfile']
-        launcher = FFLauncher(config)
-    elif browser == 'phantomjs':
-        plugin_out_file = config.get_database_configuration()['tstatfile']
-        harfile = config.get_database_configuration()['harfile']
-        launcher = PJSLauncher(config)
-    else:
-        logger.debug('Browser set as: %s - WRONG BROWSER !!' % browser)
-        exit(0)
+    
+    plugin_out_file = config.get_database_configuration()['tstatfile']
+    harfile = config.get_database_configuration()['harfile']
+    launcher = PJSLauncher(config)    
     logger.debug('Browser set as: %s' % browser)
 
     logger.debug('Backup dir set at: %s' % backupdir)
@@ -73,9 +67,8 @@ if __name__ == '__main__':
 		new_fn = backupdir + '/' + plugin_out_file.split('/')[-1] + '.run%d' % i
 		shutil.copyfile(plugin_out_file, new_fn)	# Quick and dirty not to delete Tstat log
 		open(plugin_out_file, 'w').close()
-		if browser == 'phantomjs':
-		    new_har = backupdir + '/' + harfile.split('/')[-1] + '.run%d' % i
-		    os.rename(harfile, new_har)
+		new_har = backupdir + '/' + harfile.split('/')[-1] + '.run%d' % i
+		os.rename(harfile, new_har)
 		logger.debug('Saved plugin file for run n.%d: %s' % (i,new_fn))
 	
 		monitor = Monitor(config)
