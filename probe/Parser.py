@@ -56,32 +56,6 @@ def parseTstat(filename,separator, client_id):
                 jsonmetrics = jsonmetrics + json.dumps(metrics) + "\n"
     return jsonmetrics.split(separator)
 
-'''
-def parseDateTime(s):
-	if s is None:
-	    return None
-	m = re.match(r'(.*?)(?:\.(\d+))?(([-+]\d{1,2}):(\d{2}))?$', str(s))
-	datestr, fractional, tzname, tzhour, tzmin = m.groups()
-	if tzname is None:
-	    tz = None
-	else:
-	    tzhour, tzmin = int(tzhour), int(tzmin)
-	    if tzhour == tzmin == 0:
-		tzname = 'UTC'
-	    tz = FixedOffset(timedelta(hours=tzhour, minutes=tzmin), tzname)
-	# Convert the date/time field into a python datetime
-	# object.
-	x = datetime.datetime.strptime(datestr, "%Y-%m-%d %H:%M:%S")
-	# Convert the fractional second portion into a count
-	# of microseconds.
-	if fractional is None:
-	    fractional = '0'
-	fracpower = 6 - len(fractional)
-	fractional = float(fractional) * (10 ** fracpower)	
-	# Return updated datetime object with microseconds and
-	# timezone information.
-	return x.replace(microsecond=int(fractional), tzinfo=tz)
-'''
 
 def updatebyHar(tstatdata,filename):
     try:

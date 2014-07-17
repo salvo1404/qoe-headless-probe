@@ -25,6 +25,7 @@ from DBClient import DBClient
 from Configuration import Configuration 
 from LocalDiagnosisManager import LocalDiagnosisManager
 import logging
+import time
 
 logger = logging.getLogger('JSONClient')
 
@@ -35,6 +36,8 @@ class JSONClient():
         self.rawtable = config.get_database_configuration()['rawtable']
         self.srv_ip = config.get_jsonserver_configuration()['ip']
         self.srv_port = int(config.get_jsonserver_configuration()['port'])
+	self.srv_mode = int(config.get_jsonserver_configuration()['mode'])
+	self.json_file = ".toflume/data_tosend.json"
         self.db = DBClient(config)
         self.probeid = self._get_client_id_from_db()
     
@@ -48,9 +51,15 @@ class JSONClient():
         query = 'select * from %s where not sent' % self.activetable
         res = self.db.execute_query(query)
         sids = list(set([r[0] for r in res]))
-        local_data = {'clientid': self.probeid, 'local': self._prepare_local_data(sids)}
+	local_stats = self._prepare_local_data(sids)        
+	local_data = {'clientid': self.probeid, 'local': local_stats}
         str_to_send = "local: " + json.dumps(local_data)
-        logger.info('sending local data... %s' % self.send_to_srv(str_to_send, is_json=True))
+	measurements = []
+	for sid in sids:
+	    measurements.append({'clientid': self.probeid, 'sid': str(sid), 'passive': local_stats[str(sid)], 'active': []})
+	    #print measurements
+	if self.srv_mode == 1 or self.srv_mode == 3:	
+            logger.info('sending local data... %s' % self.send_to_srv(str_to_send, is_json=True))
         for row in res:
             active_data = {'clientid': self.probeid, 'ping': None, 'trace': []}
             count = 0
@@ -78,10 +87,18 @@ class JSONClient():
                 '''
                 active_data['trace'].append({'sid': sid, 'remoteaddress': remoteaddress, 'step': step_nr,
                                              'step_address': step_addr, 'rtt': step_rtt})
-
+	    for session in measurements:
+		if int(session['sid']) == sid:
+		    session['active'].append(active_data)
             #logger.debug('Removed %d empty step(s) from secondary path to %s.' % (count, remoteaddress))
-            logger.info('sending ping/trace data about [%s]: %s ' % (remoteaddress,  self.send_to_srv(active_data)))
-
+	    if self.srv_mode == 1 or self.srv_mode == 3:
+            	logger.info('sending ping/trace data about [%s]: %s ' % (remoteaddress,  self.send_to_srv(active_data)))	    
+	
+	if self.srv_mode == 2 or self.srv_mode == 3:
+	    outfile = open(self.json_file, 'a')
+	    for measure in measurements:
+		outfile.write(json.dumps(measure) + "\n")		
+	    outfile.close()
 
         for sent_sid in sids:
             update_query = '''update %s set sent = 't' where sid = %d''' % (self.activetable, int(sent_sid))

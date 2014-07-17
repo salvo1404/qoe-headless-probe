@@ -160,13 +160,10 @@ class DBClient:
 
         self._generate_sid_on_table()
         
-    def load_to_db(self, stats, browser):
-	if browser == 'firefox':
-            datalist = Utils.read_file(self.dbconfig['pluginoutfile'], "\n")
-	else:
-	    self.create_idtable()
-	    client_id = self.get_clientID()
-	    datalist = Utils.read_tstatlog(self.dbconfig['tstatfile'], self.dbconfig['harfile'], "\n", client_id)
+    def load_to_db(self, stats):
+	self.create_idtable()
+	client_id = self.get_clientID()
+	datalist = Utils.read_tstatlog(self.dbconfig['tstatfile'], self.dbconfig['harfile'], "\n", client_id)
 	if len(datalist) > 0:
             self.write_plugin_into_db(datalist, stats)	    
 

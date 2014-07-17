@@ -32,7 +32,6 @@ BKP_FOLDER=$BKP_FOLDER_HOME/$NOW
 
 mkdir $BKP_FOLDER
 
-
 sleep 2
 /usr/bin/python probe.py $nr_runs $conf_file $BKP_FOLDER
 

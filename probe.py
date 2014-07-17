@@ -5,7 +5,6 @@ import shutil
 import logging
 import logging.config
 from probe.Configuration import Configuration
-from probe.FFLauncher import FFLauncher
 from probe.PJSLauncher import PJSLauncher
 from probe.DBClient import DBClient
 from probe.ActiveMeasurement import Monitor
@@ -37,14 +36,11 @@ if __name__ == '__main__':
     conf_file = sys.argv[2]
     backupdir = sys.argv[3]
     logger = logging.getLogger('probe')
-    config = Configuration(conf_file)
-    browser = config.get_default_browser()['browser']
-    
+    config = Configuration(conf_file)        
     plugin_out_file = config.get_database_configuration()['tstatfile']
     harfile = config.get_database_configuration()['harfile']
     launcher = PJSLauncher(config)    
-    logger.debug('Browser set as: %s' % browser)
-
+    
     logger.debug('Backup dir set at: %s' % backupdir)
     dbcli = DBClient(config)
     dbcli.create_tables()
@@ -61,7 +57,7 @@ if __name__ == '__main__':
 		    logger.error('Plugin outfile missing.')
 		    exit("Plugin outfile missing.")
 		stop_tstat_deamon(conf_file)
-		dbcli.load_to_db(stats, browser)
+		dbcli.load_to_db(stats)
 		logger.debug('Ended browsing run n.%d' % i)	
 
 		new_fn = backupdir + '/' + plugin_out_file.split('/')[-1] + '.run%d' % i
