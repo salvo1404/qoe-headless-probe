@@ -46,6 +46,7 @@ echo -n "Creating role $DBUSER ... "
 psql -U $dbadmin -c "CREATE ROLE $DBUSER WITH LOGIN" > /dev/null
 psql -U $dbadmin -c "GRANT ALL PRIVILEGES ON DATABASE $DBNAME to $DBUSER" > /dev/null
 echo "done."
+
 echo -n "Checking python version ... "
 if python -c 'import sys; sys.exit(1 if sys.hexversion<0x03000000 else 0)'
 then
@@ -54,7 +55,23 @@ then
 else
     echo "Python2 detected."
 fi
-
+echo "Checking python modules ... "
+if ! python -c 'import psycopg2'
+then
+    echo 'python module [ psycopg2 ] missing. Aborting.'
+    exit 1
+fi
+if ! python -c 'import numpy'
+then
+    echo 'python module [ numpy ] missing. Aborting.'
+    exit 1
+fi
+if ! python -c 'import json'
+then
+    echo 'python module [ json ] missing. Aborting.'
+    exit 1
+fi
+echo "Done."
 
 #if [ $MODE -eq 3 ]; then
 #    mkdir .toflume
