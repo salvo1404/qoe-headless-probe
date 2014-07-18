@@ -75,6 +75,32 @@ make
 cd ..
 echo "Done."
 
+echo "Configuring Tstat ... "
+list=$(ifconfig | egrep -i "wlan.|eth.|tun." | awk '{printf "%s ", $1 }')
+set -- $list
+echo -n "Select a network interface [ $list]:"
+while read INTERFACE; do
+    echo -n "Select a network interface [ $list]:"
+    for i in $list; do
+        if [ "$INTERFACE" == "$i" ]; then
+            echo "Chosen $INTERFACE"
+            found=0
+            break
+        else
+            found=1
+        fi
+    done
+    if [ $found -eq 0 ]; then
+        break
+    fi
+done
+
+IP=$(ifconfig $INTERFACE | grep "inet addr" | cut -d: -f2 | awk '{print $1}')
+NETMASK=$(ifconfig $INTERFACE | grep "inet addr" | cut -d: -f4)
+f=$(echo $IP | cut -d"." -f1,2,3 | awk '{print $0 ".0"}')
+echo $f/$NETMASK > $(pwd)/$TSTATDIR/tstat-conf/mplane-tstat.conf
+echo "Done."
+
 ARCH=$(uname -m)
 echo "Downloading phantomjs ..."
 DIR="phantomjs-1.9.7-linux-$ARCH"
