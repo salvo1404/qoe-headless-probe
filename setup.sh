@@ -126,7 +126,7 @@ PHANTOMARCH="$DIR.tar.bz2"
 DLINK="https://bitbucket.org/ariya/phantomjs/downloads/$PHANTOMARCH"
 wget $DLINK
 echo "Unpacking ..."
-tar xvf $NAME
+tar xvf $PHANTOMARCH
 
 
 echo "Downloading qoe-headless-probe ..."
