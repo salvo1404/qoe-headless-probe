@@ -156,9 +156,9 @@ thread_errfile=$(pwd)/qoe-headless-probe/probe/thread_err.file
 
 [tstat]
 dir=$(pwd)/$TSTATDIR
-netfile=$(pwd)/$TSTATDIR/tstat-conf/mplane.conf
+netfile=$(pwd)/$TSTATDIR/tstat-conf/mplane-tstat.conf
 tstatout=/tmp
-netinterface=eth0
+netinterface=$INTERFACE
 logfile=$(pwd)/qoe-headless-probe/probe/tstat.log
 
 [database]
