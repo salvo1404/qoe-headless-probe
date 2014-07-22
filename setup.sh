@@ -29,8 +29,8 @@ fi
 
 echo -n "Postgresql admin user name:"
 read dbadmin
-DBNAME='testingmplane'
-DBUSER='testingmplane'
+DBNAME='test3mplane'
+DBUSER='test3mplane'
 
 echo 'Checking Postgresql installation ...'
 type psql >/dev/null 2>&1 || { echo >&2 "Psql required but not installed.  Aborting."; exit 1; }
@@ -81,8 +81,9 @@ echo "Done."
     
     
 echo "Downloading Modified Tstat ..."
-wget http://firelog.eurecom.fr/mplane/software/eur-tstat-2.4.tar.gz
-tar -xzf eur-tstat-2.4.tar.gz > /dev/null
+TSTATARCH="eur-tstat-2.4.tar.gz"
+wget "http://firelog.eurecom.fr/mplane/software/$TSTATARCH"
+tar -xzf $TSTATARCH > /dev/null
 echo "Building ..."
 TSTATDIR="eur-tstat-2.4"
 cd $TSTATDIR
@@ -121,14 +122,15 @@ echo "Done."
 ARCH=$(uname -m)
 echo "Downloading phantomjs ..."
 DIR="phantomjs-1.9.7-linux-$ARCH"
-NAME="$DIR.tar.bz2"
-DLINK="https://bitbucket.org/ariya/phantomjs/downloads/$NAME"
+PHANTOMARCH="$DIR.tar.bz2"
+DLINK="https://bitbucket.org/ariya/phantomjs/downloads/$PHANTOMARCH"
 wget $DLINK
 echo "Unpacking ..."
 tar xvf $NAME
 
 
 echo "Downloading qoe-headless-probe ..."
+PROBEARCH="qoe-headless-probe.tar.gz"
 wget http://firelog.eurecom.fr/mplane/software/qoe-headless-probe.tar.gz
 tar -xzf qoe-headless-probe.tar.gz > /dev/null
 echo "Configuring ..."
@@ -178,5 +180,11 @@ EOL
 
 echo "Done. Please check the probe.conf file before proceeding."
 echo "Probe ready: fill $PROBEDIR/url.list with websites."
+
+mkdir ./downloaded
+mv $TSTATARCH ./downloaded
+mv $PHANTOMARCH ./downloaded
+mv $PROBEARCH ./downloaded
+
 exit 0
 
