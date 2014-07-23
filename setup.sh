@@ -71,6 +71,12 @@ then
     echo 'python module [ json ] missing. Aborting.'
     exit 1
 fi
+if ! python -c 'import psutil'
+then
+    echo 'python module [ psutil ] missing. Aborting.'
+    exit 1
+fi
+
 echo "Done."
 
 #if [ $MODE -eq 3 ]; then
