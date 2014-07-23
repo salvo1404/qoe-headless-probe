@@ -119,9 +119,19 @@ while read INTERFACE; do
     fi
 done
 
-IP=$(ifconfig $INTERFACE | grep "inet addr" | cut -d: -f2 | awk '{print $1}')
-NETMASK=$(ifconfig $INTERFACE | grep "inet addr" | cut -d: -f4)
+if [ $LANG == "en_US.UTF-8" ]; then
+    greparg="inet addr:"
+elif [ $LANG == "it_IT.UTF-8" ]; then
+    greparg="indirizzo inet:"
+else
+    echo "Locale not supported."
+    exit 1
+fi
+
+IP=$(ifconfig $INTERFACE | grep "$greparg" | cut -d: -f2 | awk '{print $1}')
+NETMASK=$(ifconfig $INTERFACE | grep "$greparg" | cut -d: -f4)
 f=$(echo $IP | cut -d"." -f1,2,3 | awk '{print $0 ".0"}')
+
 echo $f/$NETMASK > $(pwd)/$TSTATDIR/tstat-conf/mplane-tstat.conf
 echo "Done."
 
