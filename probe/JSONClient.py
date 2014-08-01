@@ -56,7 +56,8 @@ class JSONClient():
         str_to_send = "local: " + json.dumps(local_data)
 	measurements = []
 	for sid in sids:
-	    measurements.append({'clientid': self.probeid, 'sid': str(sid), 'passive': local_stats[str(sid)], 'active': []})
+	    measurements.append({'clientid': self.probeid, 'sid': str(sid), 
+				'ts': local_stats[str(sid)]['start'], 'passive': local_stats[str(sid)], 'active': []})
 	    #print measurements
 	if self.srv_mode == 1 or self.srv_mode == 3:	
             logger.info('sending local data... %s' % self.send_to_srv(str_to_send, is_json=True))
