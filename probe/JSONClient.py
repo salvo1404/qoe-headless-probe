@@ -73,11 +73,11 @@ class JSONClient():
             active_data['ping'] = {'sid': sid, 'session_url': session_url, 'remoteaddress': remoteaddress,
                                    'min': ping['min'], 'max': ping['max'], 'avg': ping['avg'], 'std': ping['std']}
 
-            for steps in trace:
-                if len(steps) > 1:
-                    empty_targets = [t for t in steps if t[0] == '???' or t[1] == []]
+            for step in trace:
+                if len(step) > 1:
+                    empty_targets = [t for t in step if t[0] == '???' or t[1] == []]
                     for empty in empty_targets:
-                        steps.remove(empty)
+                        step.remove(empty)
                         count += 1
 
             for step in trace:
