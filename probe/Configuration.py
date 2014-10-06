@@ -20,6 +20,7 @@
 #
 import ConfigParser
 
+
 class Configuration():
     def __init__(self, conf_file):
         self.config = ConfigParser.RawConfigParser()

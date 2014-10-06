@@ -45,23 +45,6 @@ class TstatDaemonThread(threading.Thread):
             p = subprocess.Popen(self.script, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False).wait()
 
 
-#def launch_tstat_deamon(configuration):
-#    script = configuration.get_tstat_configuration()['start']
-#    tstatpath = os.path.join(configuration.get_tstat_configuration()['dir'], 'tstat/tstat')
-#    interface = configuration.get_tstat_configuration()['netinterface']
-#    netfile = configuration.get_tstat_configuration()['netfile']
-#    outdir = configuration.get_tstat_configuration()['tstatout']
-#    cmd = "%s %s %s %s %s" % (script, tstatpath, interface, netfile, outdir)
-#    p = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False).wait()
-#    logger.info('Tstat is running...')
-
-
-#def stop_tstat_deamon(configuration):
-#    script = configuration.get_tstat_configuration()['stop']
-#    p = subprocess.Popen(script, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True).wait()
-#    logger.info('Tstat stopped.')
-
-
 if __name__ == '__main__':
     if len(sys.argv) < 4:
         exit("Usage: %s %s %s %s" % (sys.argv[0], 'nr_runs', 'conf_file', 'backup folder'))
@@ -82,10 +65,6 @@ if __name__ == '__main__':
     t = TstatDaemonThread(config, 'start')
     for i in range(nun_runs):
         for url in open(pjs_config['urlfile']):
-            print('url = ', url)
-
-            #launch_tstat_deamon(config)
-            #launch_tstat_deamon(conf_file)
             stats = launcher._browse_url(url)
             if stats is None:
                 logger.warning('Problem in session %d.. skipping' % i)
@@ -94,8 +73,6 @@ if __name__ == '__main__':
                 logger.error('Plugin outfile missing.')
                 exit("Plugin outfile missing.")
 
-
-            #stop_tstat_deamon(conf_file)
             dbcli.load_to_db(stats)
             print ('loaded stats')
             logger.debug('Ended browsing run n.%d' % i)
@@ -115,6 +92,5 @@ if __name__ == '__main__':
                     os.rename(tracefile, new_fn_trace)
 
     s = TstatDaemonThread(config, 'stop')
-    print 'Ended...'
     jc = JSONClient(config)
     jc.prepare_and_send()

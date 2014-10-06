@@ -54,6 +54,7 @@ class JSONClient():
         local_stats = self._prepare_local_data(sids)
         local_data = {'clientid': self.probeid, 'local': local_stats}
         str_to_send = "local: " + json.dumps(local_data)
+        #print('str_to_send', str_to_send)
         measurements = []
         for sid in sids:
             measurements.append({'clientid': self.probeid, 'sid': str(sid),
@@ -140,10 +141,11 @@ class JSONClient():
 if __name__ == '__main__':
     import sys
     conf_file = sys.argv[1]
-    url = sys.argv[2]
+    #url = sys.argv[2]
     #conf_file='../probe.conf'
     #url = 'www.google.com'
     c = Configuration(conf_file)
     j = JSONClient(c)
-    print j.send_request_for_diagnosis(url, 6)
+    print(j.srv_ip, j.srv_port)
+    #print j.send_request_for_diagnosis(url, 6)
 
