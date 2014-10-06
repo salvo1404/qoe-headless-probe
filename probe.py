@@ -9,8 +9,8 @@ from probe.PJSLauncher import PJSLauncher
 from probe.DBClient import DBClient
 from probe.ActiveMeasurement import Monitor
 from probe.JSONClient import JSONClient
-from probe.TstatLiveCapture import TstatLiveCapture
-import time
+#from probe.TstatLiveCapture import TstatLiveCapture
+#import time
 import subprocess
 import threading
 
@@ -34,7 +34,7 @@ class TstatDaemonThread(threading.Thread):
 
         thread = threading.Thread(target=self.run, args=())
         thread.daemon = self.is_daemon
-        logging.info("TstatDaemonThread running [%s] is_daemon = %s..." % (os.path.basename(self.script), str(self.is_daemon)))
+        logger.info("TstatDaemonThread running [%s] is_daemon = %s..." % (os.path.basename(self.script), str(self.is_daemon)))
         thread.start()
 
     def run(self):
@@ -65,7 +65,7 @@ if __name__ == '__main__':
     t = TstatDaemonThread(config, 'start')
     for i in range(nun_runs):
         for url in open(pjs_config['urlfile']):
-            stats = launcher._browse_url(url)
+            stats = launcher.browse_url(url)
             if stats is None:
                 logger.warning('Problem in session %d.. skipping' % i)
                 continue
@@ -74,18 +74,18 @@ if __name__ == '__main__':
                 exit("Plugin outfile missing.")
 
             dbcli.load_to_db(stats)
-            print ('loaded stats')
-            logger.debug('Ended browsing run n.%d' % i)
+            logger.info('Loaded stats')
+            logger.debug('Ended browsing run n.%d for %s' % (i, url))
 
-            new_fn = backupdir + '/' + plugin_out_file.split('/')[-1] + '.run%d' % i
-            shutil.copyfile(plugin_out_file, new_fn)	# Quick and dirty not to delete Tstat log
+            new_fn = backupdir + '/' + plugin_out_file.split('/')[-1] + '.run%d_%s' % (i, url)
+            shutil.copyfile(plugin_out_file, new_fn)  # Quick and dirty not to delete Tstat log
             open(plugin_out_file, 'w').close()
-            new_har = backupdir + '/' + harfile.split('/')[-1] + '.run%d' % i
+            new_har = backupdir + '/' + harfile.split('/')[-1] + '.run%d_%s' % (i, url)
             os.rename(harfile, new_har)
             logger.debug('Saved plugin file for run n.%d: %s' % (i, new_fn))
             monitor = Monitor(config)
             monitor.run_active_measurement()
-            logger.debug('Ended Active probing for run n.%d' % i)
+            logger.debug('Ended Active probing for run n.%d to url %s' % (i, url))
             for tracefile in os.listdir('.'):
                 if tracefile.endswith('.traceroute'):
                     new_fn_trace = backupdir + '/' + tracefile + '.run%d' % i
