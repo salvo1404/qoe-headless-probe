@@ -98,12 +98,12 @@ class PJSLauncher():
 
     def _browse_url(self, urlx):
         #out = open(self.config['logfile'], 'a')
-	if not re.match('http://', urlx):
-                url = 'http://' + urlx.strip()
+        if not re.match('http://', urlx):
+            url = 'http://' + urlx.strip()
         else:
-                url = urlx.strip()
+            url = urlx.strip()
         if url[-1] != '\/':
-                url += '/'
+            url += '/'
         logger.info('Browsing %s', url)
         res = {'mem': 0.0, 'cpu': 0.0}
         cmdstr = "%s/bin/phantomjs %s %s" % (self.pjs_config['dir'], self.pjs_config['script'], url)
@@ -119,7 +119,7 @@ class PJSLauncher():
             logger.warning('Problems in browsing thread. Waiting for xvfb to restart...')
             time.sleep(5)
         #out.close()
-	self.osstats[url] = res
+        self.osstats[url] = res
         return self.osstats
 
     '''

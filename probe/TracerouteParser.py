@@ -51,8 +51,9 @@ class TracerouteParser():
                 tmp = step.strip().split("  ")
                 hop = int(tmp[0])
                 if len(tmp) > 2:
-                    addr = [k for k in tmp[1].split(" ") if k != "*"][0] # remove possible \* in traceroute
-                    rtts = [float(tmp[i].split(" ")[0]) for i in range(2,len(tmp)) if tmp[i] != '*']
+                    print str(tmp)
+                    addr = [k for k in tmp[1].split(" ") if k != "*"][0]  # remove possible \* in traceroute
+                    rtts = [float(tmp[i].split(" ")[0]) for i in range(2, len(tmp)) if tmp[i] != '*']
                 else:
                     addr = '???'
                     rtts = []
