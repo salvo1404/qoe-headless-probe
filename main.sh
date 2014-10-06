@@ -14,14 +14,7 @@ if ! [[ $2 =~ $re ]] ; then
    exit 1;
 fi
 
-TMP_FILE=/tmp/plugin_test.out #dump_db.js
 BKP_FOLDER_HOME=./session_bkp
-if [ ! -f $TMP_FILE ]; 
-then
-    touch $TMP_FILE
-else
-    cat /dev/null > $TMP_FILE
-fi
 
 if [ ! -d "$BKP_FOLDER_HOME" ]; then
 	mkdir $BKP_FOLDER_HOME
@@ -29,7 +22,6 @@ fi
 
 NOW=$(date +"%d-%m-%y_%T")
 BKP_FOLDER=$BKP_FOLDER_HOME/$NOW
-
 mkdir $BKP_FOLDER
 
 sleep 2
