@@ -92,11 +92,11 @@ class PJSLauncher():
                 use = url.strip()
             if use[-1] != '\/':
                 use += '/'
-            self.osstats[use] = self._browse_url(use)
+            self.osstats[use] = self.browse_url(use)
 
         return self.osstats
 
-    def _browse_url(self, urlx):
+    def browse_url(self, urlx):
         #out = open(self.config['logfile'], 'a')
         if not re.match('http://', urlx):
             url = 'http://' + urlx.strip()

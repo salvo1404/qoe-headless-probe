@@ -64,7 +64,7 @@ class DBClient:
 
     def create_clientID(self):
         cursor = self.conn.cursor()
-        client_id = fpformat.fix(random.random()*2147483647,0)		# int4 range in PgSQL: -2147483648 to +2147483647
+        client_id = fpformat.fix(random.random()*2147483647, 0)		# int4 range in PgSQL: -2147483648 to +2147483647
         ts = time.time()
         st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
         state = '''INSERT INTO client_id VALUES ('%s', '%s')'''% (client_id, st)
@@ -163,7 +163,9 @@ class DBClient:
     def load_to_db(self, stats):
         self.create_idtable()
         client_id = self.get_clientID()
+        logger.debug("Got client %s" % client_id)
         datalist = Utils.read_tstatlog(self.dbconfig['tstatfile'], self.dbconfig['harfile'], "\n", client_id)
+        logger.debug("len(datalist) = %d" % len(datalist))
         if len(datalist) > 0:
             self.write_plugin_into_db(datalist, stats)
 

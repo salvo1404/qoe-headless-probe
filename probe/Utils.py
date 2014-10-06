@@ -51,7 +51,7 @@ def read_tstatlog(tstalogfile, harfile, separator, client_id):
             rows.append(jsonstring)
         except ValueError:
             print line
-	    continue
+        continue
     full_rows = Parser.updatebyHar(rows, harfile)
     return full_rows
 

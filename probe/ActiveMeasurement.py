@@ -176,7 +176,7 @@ class Monitor(object):
                     logger.info('Running: %s ' % trace.get_cmd())
                     trace.run()
 
-                logger.debug('current %d, inserted from %d' % (sid, c_sid))
+                logger.debug('sid = %d, c_sid = %d (if equals, new IP/session)' % (sid, c_sid))
 
                 if not found:
                     tot[sid].append({'url': url, 'ip': ip, 'ping': ping.get_result(), 'trace': trace.get_result()})
