@@ -22,6 +22,7 @@ import json
 import fileinput
 import Parser
 
+
 # quantile in (0,1)
 def compute_quantile(data, quantile):
     if quantile < 0 or quantile > 1:
@@ -33,6 +34,7 @@ def compute_quantile(data, quantile):
 
 def add_wildcard_to_addr(addr):
     return '%'+addr.strip()+'%'
+
 
 def __file_to_array(filename, separator):
     fileobj = open(filename, "r")
@@ -54,6 +56,7 @@ def read_tstatlog(tstalogfile, harfile, separator, client_id):
         continue
     full_rows = Parser.updatebyHar(rows, harfile)
     return full_rows
+
 
 #Read json formatted file.
 def read_file(filename, separator):

@@ -53,7 +53,7 @@ if __name__ == '__main__':
     backupdir = sys.argv[3]
     logger = logging.getLogger('probe')
     config = Configuration(conf_file)        
-    plugin_out_file = config.get_database_configuration()['tstatfile']
+    tstat_out_file = config.get_database_configuration()['tstatfile']
     harfile = config.get_database_configuration()['harfile']
     launcher = PJSLauncher(config)    
     
@@ -69,17 +69,17 @@ if __name__ == '__main__':
             if stats is None:
                 logger.warning('Problem in session %d.. skipping' % i)
                 continue
-            if not os.path.exists(plugin_out_file):
-                logger.error('Plugin outfile missing.')
-                exit("Plugin outfile missing.")
+            if not os.path.exists(tstat_out_file):
+                logger.error('tstat outfile missing. Check your network configuration.')
+                exit("tstat outfile missing. Check your network configuration.")
 
             dbcli.load_to_db(stats)
-            logger.info('Loaded stats')
-            logger.debug('Ended browsing run n.%d for %s' % (i, url))
+            logger.debug('Loaded stats run n.%d for %s' % (i, url))
+            logger.info('Ended browsing run n.%d for %s' % (i, url))
 
-            new_fn = backupdir + '/' + plugin_out_file.split('/')[-1] + '.run%d_%s' % (i, url)
-            shutil.copyfile(plugin_out_file, new_fn)  # Quick and dirty not to delete Tstat log
-            open(plugin_out_file, 'w').close()
+            new_fn = backupdir + '/' + tstat_out_file.split('/')[-1] + '.run%d_%s' % (i, url)
+            shutil.copyfile(tstat_out_file, new_fn)  # Quick and dirty not to delete Tstat log
+            open(tstat_out_file, 'w').close()
             new_har = backupdir + '/' + harfile.split('/')[-1] + '.run%d_%s' % (i, url)
             os.rename(harfile, new_har)
             logger.debug('Saved plugin file for run n.%d: %s' % (i, new_fn))

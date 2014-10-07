@@ -150,13 +150,22 @@ class DBClient:
                 url = DBClient._unicode_to_ascii(obj['session_url'])
                 cols = ', '.join(obj)
                 to_execute = insert_query % (cols, tuple(DBClient._convert_to_ascii(obj.values())))
-                #print to_execute
-                cursor.execute(to_execute)
-                self.conn.commit()
-                row_id = cursor.fetchone()[0]
-                to_update = update_query % (stats[url]['mem'], stats[url]['cpu'], row_id)
-                cursor.execute(to_update)
-                self.conn.commit()
+                #logger.debug('to_execute: %s' % to_execute)
+                try:
+                    cursor.execute(to_execute)
+                    row_id = cursor.fetchone()[0]
+                    to_update = update_query % (stats[url]['mem'], stats[url]['cpu'], row_id)
+                    cursor.execute(to_update)
+                    self.conn.commit()
+                except psycopg2.ProgrammingError as e:
+                    logger.error(to_execute)
+                    logger.error("psycopg2({0}): {1}".format(e.errno, e.strerror))
+                    continue
+                finally:
+                    self.conn.commit()
+
+                if not row_id:
+                    logger.error('Unable to update %s' % to_update)
 
         self._generate_sid_on_table()
         

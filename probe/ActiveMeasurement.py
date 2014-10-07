@@ -55,7 +55,7 @@ class Ping(Measure):
             res = out_ping[1].split()[0]
             try:
                 rttmin, rttavg, rttmax, rttmdev = map(float, res.strip().split("/"))
-                logger.info('rtts - %.3f, %.3f, %.3f, %.3f' % (rttmin, rttavg, rttmax, rttmdev))
+                logger.debug('rtts - %.3f, %.3f, %.3f, %.3f' % (rttmin, rttavg, rttmax, rttmdev))
             except ValueError:
                 logger.error('Unable to map float in do_ping [%s]' % out.strip())
         self.result = json.dumps({'min': rttmin, 'max':rttmax, 'avg':rttavg, 'std':rttmdev})
@@ -171,9 +171,9 @@ class Monitor(object):
                     c_sid = sid
                     ping = Ping(ip)
                     trace = Traceroute(ip)
-                    logger.info('Running: %s ' % ping.get_cmd())
+                    logger.debug('Running: %s ' % ping.get_cmd())
                     ping.run()
-                    logger.info('Running: %s ' % trace.get_cmd())
+                    logger.debug('Running: %s ' % trace.get_cmd())
                     trace.run()
 
                 logger.debug('sid = %d, c_sid = %d (if equals, new IP/session)' % (sid, c_sid))
