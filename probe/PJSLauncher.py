@@ -33,7 +33,7 @@ logger = logging.getLogger('PJSLauncher')
 class BrowserThread(threading.Thread):
     def __init__(self, cmd, outf, errf):
         self.cmd = cmd
-        self.process = 0
+        self.process = None
         self.outfile = outf
         self.errfile = errf
         self.mem = -1
@@ -70,11 +70,16 @@ class BrowserThread(threading.Thread):
         thread.join(timeout)
         if thread.is_alive():
             logger.debug('Timeout expired: terminating process')
-            self.process.terminate()
-            self.flag = True
-            thread.join()
+            try:
+                self.process.terminate()
+            except AttributeError as e:
+                logger.error('Error in browser thread {0} {1}'.format(e.errno, e.strerror))
+                return self.flag, self.mem, self.cpu, True
+            finally:
+                self.flag = True
+                thread.join()
         
-        return self.flag, self.mem, self.cpu
+        return self.flag, self.mem, self.cpu, False
                 
 
 class PJSLauncher():
@@ -109,14 +114,17 @@ class PJSLauncher():
         cmdstr = "%s/bin/phantomjs %s %s" % (self.pjs_config['dir'], self.pjs_config['script'], url)
         cmd = BrowserThread(cmdstr, self.pjs_config['thread_outfile'], self.pjs_config['thread_errfile'])
         t = int(self.pjs_config['thread_timeout'])
-        flag, mem, cpu = cmd.run(timeout=t)
-
+        flag, mem, cpu, error = cmd.run(timeout=t)
+        if not error:
+            logger.debug('browserthread {0} {1} {2}'.format(flag, mem, cpu))
+        else:
+            logger.error('Error in browsing thread reported.')
         if not flag:
             res['mem'] = mem
             res['cpu'] = cpu
             logger.info('%s: mem = %.2f, cpu = %.2f' % (url, res['mem'], res['cpu']))
         else:
-            logger.warning('Problems in browsing thread. Waiting for xvfb to restart...')
+            logger.warning('Problems in browsing thread. Need to restart browser...')
             time.sleep(5)
         #out.close()
         self.osstats[url] = res

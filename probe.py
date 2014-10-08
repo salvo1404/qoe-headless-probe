@@ -66,6 +66,7 @@ if __name__ == '__main__':
     for i in range(nun_runs):
         for url in open(pjs_config['urlfile']):
             stats = launcher.browse_url(url)
+            logger.debug('Received stats: %s' % str(stats))
             if stats is None:
                 logger.warning('Problem in session %d.. skipping' % i)
                 continue
@@ -92,5 +93,10 @@ if __name__ == '__main__':
                     os.rename(tracefile, new_fn_trace)
 
     s = TstatDaemonThread(config, 'stop')
-    jc = JSONClient(config)
-    jc.prepare_and_send()
+    try:
+        jc = JSONClient(config)
+        jc.prepare_and_send()
+    except:
+        logger.error('Problems in sending')
+        exit(1)
+    exit(0)
