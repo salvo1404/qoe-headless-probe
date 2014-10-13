@@ -13,6 +13,7 @@ from probe.JSONClient import JSONClient
 #import time
 import subprocess
 import threading
+import socket
 
 logging.config.fileConfig('logging.conf')
 
@@ -45,6 +46,7 @@ class TstatDaemonThread(threading.Thread):
             p = subprocess.Popen(self.script, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False).wait()
 
 
+
 if __name__ == '__main__':
     if len(sys.argv) < 4:
         exit("Usage: %s %s %s %s" % (sys.argv[0], 'nr_runs', 'conf_file', 'backup folder'))
@@ -64,7 +66,10 @@ if __name__ == '__main__':
     pjs_config = config.get_phantomjs_configuration()
     t = TstatDaemonThread(config, 'start')
     for i in range(nun_runs):
-        for url in open(pjs_config['urlfile']):
+        for url_in_file in open(pjs_config['urlfile']):
+            url = url_in_file.strip()
+            ip_dest = socket.gethostbyname(url)
+            logger.debug('Resolved %s to [%s]' % (url, ip_dest))
             stats = launcher.browse_url(url)
             logger.debug('Received stats: %s' % str(stats))
             if stats is None:
@@ -85,7 +90,7 @@ if __name__ == '__main__':
             os.rename(harfile, new_har)
             logger.debug('Saved plugin file for run n.%d: %s' % (i, new_fn))
             monitor = Monitor(config)
-            monitor.run_active_measurement()
+            monitor.run_active_measurement(ip_dest)
             logger.debug('Ended Active probing for run n.%d to url %s' % (i, url))
             for tracefile in os.listdir('.'):
                 if tracefile.endswith('.traceroute'):

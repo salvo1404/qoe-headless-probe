@@ -61,6 +61,7 @@ class JSONClient():
             measurements.append({'clientid': self.probeid, 'sid': str(sid),
                                  'ts': local_stats[str(sid)]['start'], 'passive': local_stats[str(sid)], 'active': []})
             #print measurements
+
         if self.srv_mode == 1 or self.srv_mode == 3:
             ret = self.send_to_srv(str_to_send, is_json=True)
             if ret:
@@ -68,6 +69,7 @@ class JSONClient():
                 sent_sids.append(sid)
             else:
                 logger.warning('Problem sending local data to server: ONLY locally saved')
+
         for row in res:
             active_data = {'clientid': self.probeid, 'ping': None, 'trace': []}
             count = 0
@@ -78,7 +80,8 @@ class JSONClient():
             trace = json.loads(row[4])
 
             active_data['ping'] = {'sid': sid, 'session_url': session_url, 'remoteaddress': remoteaddress,
-                                   'min': ping['min'], 'max': ping['max'], 'avg': ping['avg'], 'std': ping['std']}
+                                   'min': ping['min'], 'max': ping['max'], 'avg': ping['avg'], 'std': ping['std'],
+                                   'loss': ping['loss'], 'host': ping['host']}
 
             for step in trace:
                 if len(step) > 1:
@@ -103,7 +106,7 @@ class JSONClient():
                 if int(session['sid']) == sid:
                     session['active'].append(active_data)
 
-            #logger.debug('Removed %d empty step(s) from secondary path to %s.' % (count, remoteaddress))
+
             if self.srv_mode == 1 or self.srv_mode == 3:
                 ret = self.send_to_srv(active_data)
                 if ret:
@@ -111,6 +114,7 @@ class JSONClient():
                     sent_sids.append(sid)
                 else:
                     logger.warning('Problem sending ping/trace data to server: ONLY locally saved.')
+
 
         if self.srv_mode == 2 or self.srv_mode == 3:
             outfile = open(self.json_file, 'a')
@@ -167,6 +171,7 @@ if __name__ == '__main__':
     #url = 'www.google.com'
     c = Configuration(conf_file)
     j = JSONClient(c)
-    print(j.srv_ip, j.srv_port)
+    j.prepare_and_send()
+    #print(j.srv_ip, j.srv_port)
     #print j.send_request_for_diagnosis(url, 6)
 

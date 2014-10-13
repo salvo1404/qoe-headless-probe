@@ -44,21 +44,53 @@ class Measure(object):
 class Ping(Measure):
     def __init__(self, host):
         Measure.__init__(self, host)
-        self.cmd = 'ping -c 3 %s ' % self.target
+        self.cmd = 'ping -c 5 %s ' % self.target
 
     def run(self):
         ping = subprocess.Popen(self.cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         out, error = ping.communicate()
-        rttmin = rttavg = rttmax = rttmdev = -1.0
-        out_ping = out.strip().split('\n')[-1].split(' = ')
-        if len(out_ping) > 1:
-            res = out_ping[1].split()[0]
-            try:
-                rttmin, rttavg, rttmax, rttmdev = map(float, res.strip().split("/"))
-                logger.debug('rtts - %.3f, %.3f, %.3f, %.3f' % (rttmin, rttavg, rttmax, rttmdev))
-            except ValueError:
-                logger.error('Unable to map float in do_ping [%s]' % out.strip())
-        self.result = json.dumps({'min': rttmin, 'max':rttmax, 'avg':rttavg, 'std':rttmdev})
+        #rttmin = rttavg = rttmax = rttmdev = -1.0
+        #out_ping = out.strip().split('\n')[-1].split(' = ')
+        #m = re.search('--- %s ping statistics ---' % self.target, out)
+        #if len(out_ping) > 1:
+        #    res = out_ping[1].split()[0]
+        #    try:
+        #        rttmin, rttavg, rttmax, rttmdev = map(float, res.strip().split("/"))
+        #        logger.debug('rtts - %.3f, %.3f, %.3f, %.3f' % (rttmin, rttavg, rttmax, rttmdev))
+        #    except ValueError:
+        #        logger.error('Unable to map float in do_ping [%s]' % out.strip())
+        #self.result = json.dumps({'min': rttmin, 'max': rttmax, 'avg': rttavg, 'std': rttmdev})
+
+        res = {}
+        try:
+            res = self.parse(out)
+            logger.info('Ping received. {0}'.format(res))
+        except Exception:
+            logger.error('Unable to receive valid ping values')
+
+        self.result = json.dumps(res)
+
+
+    def parse(self, ping_output):
+        matcher = re.compile(r'PING ([a-zA-Z0-9.\-]+) \(')
+        host = Ping._get_match_groups(ping_output, matcher)[0]
+        matcher = re.compile(r'(\d+) packets transmitted, (\d+) received, (\d+)% packet loss, ')
+        sent, received, loss = map(int, Ping._get_match_groups(ping_output, matcher))
+        try:
+            matcher = re.compile(r'(\d+.\d+)/(\d+.\d+)/(\d+.\d+)/(\d+.\d+)')
+            rttmin, rttavg, rttmax, rttmdev = map(float, Ping._get_match_groups(ping_output, matcher))
+        except:
+            rttmin, rttavg, rttmax, rttmdev = [-1]*4
+
+        return {'host': host, 'sent': sent, 'received': received, 'loss': loss, 'min': rttmin,
+                'avg': rttavg, 'max': rttmax, 'std': rttmdev}
+
+    @staticmethod
+    def _get_match_groups(ping_output, regex):
+        match = regex.search(ping_output)
+        if not match:
+            raise Exception('Invalid PING output:\n' + ping_output)
+        return match.groups()
 
 
 class Traceroute(Measure):
@@ -143,7 +175,8 @@ class Monitor(object):
         self.inserted_sid = self.db.get_inserted_sid_addresses()
         logger.info('Started active monitor: %d session(s).' % len(self.inserted_sid))
 
-    def run_active_measurement(self):
+    def run_active_measurement(self, ip_dest):
+        ip_from_url = ip_dest
         tot = {}
         probed_ip = {}
         for sid, dic in self.inserted_sid.iteritems():
@@ -193,8 +226,8 @@ class Monitor(object):
 if __name__ == '__main__':
     t = '8.8.8.8'
     pi = Ping(t)
-    tr = Traceroute(t)
+    #tr = Traceroute(t)
     pi.run()
-    tr.run()
+    #tr.run()
     print pi.get_result()
-    print tr.get_result()
+    #print tr.get_result()

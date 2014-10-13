@@ -34,21 +34,22 @@ class LocalDiagnosisManager():
         res = {}
         for sid in self.sids:
             session_start, idletime = self._get_client_idle_time(sid)
-            print 'session_start, idletime: ', session_start, idletime
+            #print 'session_start, idletime: ', session_start, idletime
             httpresp = self._get_http_response_time(sid)
-            print 'httpresp: ', httpresp
+            #print 'httpresp: ', httpresp
             pagedown = self._get_page_downloading_time(sid)
-            print 'pagedown: ', pagedown
+            #print 'pagedown: ', pagedown
             dnsresp = self._get_dns_response_time(sid)
-            print 'dnsresp: ', dnsresp
+            #print 'dnsresp: ', dnsresp
             tcpresp = self._get_tcp_response_time(sid)
-            print 'tcpresp: ', tcpresp
+            #print 'tcpresp: ', tcpresp
             pagedim = self._get_page_dimension(sid)
-            print 'pagedim: ', pagedim
+            #print 'pagedim: ', pagedim
             osstats = self._get_os_stats(sid)
-            print 'osstats: ', osstats
+            #print 'osstats: ', osstats
             res[str(sid)] = {'idle': idletime, 'http': httpresp, 'tcp': tcpresp, 'tot': pagedown,
                              'dns': dnsresp, 'dim': pagedim, 'osstats': osstats, 'start': session_start}
+            logger.debug('do_local_diagnosis : %s' % str(res))
         return res
          
     def _execute_obj_start_end_query(self, sid, full_load_time=True):
