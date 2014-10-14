@@ -59,7 +59,7 @@ class JSONClient():
         local_stats = self._prepare_local_data(sids)
         local_data = {'clientid': self.probeid, 'local': local_stats}
         str_to_send = "local: " + json.dumps(local_data)
-        #print('str_to_send', str_to_send)
+        logger.debug('str_to_send %s' % str_to_send)
         measurements = []
         for sid in sids:
             measurements.append({'clientid': self.probeid, 'sid': str(sid),
