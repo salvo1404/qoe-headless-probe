@@ -254,7 +254,7 @@ class DBClient:
         self.conn.commit()
     
     def get_table_names(self):
-        return {'raw': self.dbconfig['rawtable'],'active': self.dbconfig['activetable']}
+        return {'raw': self.dbconfig['rawtable'], 'active': self.dbconfig['activetable']}
 
     def force_update_full_load_time(self, sid):
         import datetime

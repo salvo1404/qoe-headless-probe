@@ -106,6 +106,7 @@ class LocalDiagnosisManager():
             % (self.dbconn.get_table_names()['raw'], sid)
         res = self.dbconn.execute_query(q)
         app_rtts = [r[0] for r in res]
+        logger.debug('app_rtts {0}'.format(app_rtts))
         http_res_time = -1
         if len(app_rtts) == 0:
             logger.warning('_get_http_response_time got 0 results')
