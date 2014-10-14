@@ -26,7 +26,6 @@ logger = logging.getLogger('LocalDiagnosisManager')
 
 class LocalDiagnosisManager():
     def __init__(self, dbconn, clientid, sids):
-        logger.debug('LocalDiagnosisManager starting.')
         self.dbconn = dbconn
         self.sids = sids
         self.clientid = clientid
@@ -36,19 +35,19 @@ class LocalDiagnosisManager():
         res = {}
         for sid in self.sids:
             session_start, idletime = self._get_client_idle_time(sid)
-            #print 'session_start, idletime: ', session_start, idletime
+            logger.debug('session_start {0}, idletime {1}'.format(session_start, idletime))
             httpresp = self._get_http_response_time(sid)
-            #print 'httpresp: ', httpresp
+            logger.debug('httpresp {0}'.format(httpresp))
             pagedown = self._get_page_downloading_time(sid)
-            #print 'pagedown: ', pagedown
+            logger.debug('pagedown {0}'.format(pagedown))
             dnsresp = self._get_dns_response_time(sid)
-            #print 'dnsresp: ', dnsresp
+            logger.debug('dnsresp {0}'.format(dnsresp))
             tcpresp = self._get_tcp_response_time(sid)
-            #print 'tcpresp: ', tcpresp
+            logger.debug('tcpresp {0}'.format(tcpresp))
             pagedim = self._get_page_dimension(sid)
-            #print 'pagedim: ', pagedim
+            logger.debug('pagedim {0}'.format(pagedim))
             osstats = self._get_os_stats(sid)
-            #print 'osstats: ', osstats
+            logger.debug('osstats {0}'.format(osstats))
             res[str(sid)] = {'idle': idletime, 'http': httpresp, 'tcp': tcpresp, 'tot': pagedown,
                              'dns': dnsresp, 'dim': pagedim, 'osstats': osstats, 'start': session_start}
             logger.debug('do_local_diagnosis : %s' % str(res))
