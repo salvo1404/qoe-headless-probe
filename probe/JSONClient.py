@@ -51,6 +51,9 @@ class JSONClient():
         query = 'select * from %s where not sent' % self.activetable
         res = self.db.execute_query(query)
         sids = list(set([r[0] for r in res]))
+        if len(sids) == 0:
+            logger.info('Nothing to send (all sent flags are valid). Returning...')
+            return
         sent_sids = []
         local_stats = self._prepare_local_data(sids)
         local_data = {'clientid': self.probeid, 'local': local_stats}

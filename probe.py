@@ -55,6 +55,7 @@ if __name__ == '__main__':
     backupdir = sys.argv[3]
     logger = logging.getLogger('probe')
     config = Configuration(conf_file)        
+    '''
     tstat_out_file = config.get_database_configuration()['tstatfile']
     harfile = config.get_database_configuration()['harfile']
     launcher = PJSLauncher(config)    
@@ -73,7 +74,7 @@ if __name__ == '__main__':
             stats = launcher.browse_url(url)
             logger.debug('Received stats: %s' % str(stats))
             if stats is None:
-                logger.warning('Problem in session %d.. skipping' % i)
+                logger.warning('Problem in session %d [%s - %s].. skipping' % (i, url, ip_dest))
                 continue
             if not os.path.exists(tstat_out_file):
                 logger.error('tstat outfile missing. Check your network configuration.')
@@ -98,6 +99,7 @@ if __name__ == '__main__':
                     os.rename(tracefile, new_fn_trace)
 
     s = TstatDaemonThread(config, 'stop')
+    '''
     try:
         jc = JSONClient(config)
         jc.prepare_and_send()
