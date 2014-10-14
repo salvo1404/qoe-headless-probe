@@ -98,7 +98,7 @@ class LocalDiagnosisManager():
             if rel_starts[i] > end:
                 idle_time += rel_starts[i] - end
             end = rel_ends[i]
-        
+        logger.debug('_get_client_idle_time: {0} {1}'.format(session_start, idle_time))
         return session_start, idle_time  #msec
     
     def _get_http_response_time(self, sid):
@@ -106,20 +106,26 @@ class LocalDiagnosisManager():
             % (self.dbconn.get_table_names()['raw'], sid)
         res = self.dbconn.execute_query(q)
         app_rtts = [r[0] for r in res]
+        http_res_time = -1
         if len(app_rtts) == 0:
-            return -1
+            logger.warning('_get_http_response_time got 0 results')
         else:
             #print Utils.computeQuantile(app_rtts, 0.5)
-            return sum(app_rtts)/float(len(app_rtts))
+            http_res_time = sum(app_rtts)/float(len(app_rtts))
+            logger.debug('_get_http_response_time = {0}'.format(http_res_time))
+        return http_res_time
 
     def _get_page_downloading_time(self, sid):
         q = '''select distinct full_load_time from %s where sid = %d and full_load_time > -1 group by full_load_time'''\
             % (self.dbconn.get_table_names()['raw'], sid)
         res = self.dbconn.execute_query(q)
+        page_down = -1
         if len(res) == 0:
-            return -1
+            logger.warning('_get_page_downloading_time got 0 results')
         else:
-            return float(res[0][0]) #msec
+            page_down = float(res[0][0]) #msec
+            logger.debug('_get_page_downloading_time = {0}'.format(page_down))
+        return page_down
 
     def _get_dns_response_time(self, sid):
         q = '''select remote_ip, dns_time from %s where sid = %d and dns_time > 0 and full_load_time > -1'''\
@@ -133,10 +139,13 @@ class LocalDiagnosisManager():
         q = 'select syn_time from %s where sid = %d and full_load_time > -1' % (self.dbconn.get_table_names()['raw'], sid)
         res = self.dbconn.execute_query(q)
         tcp_times = [r[0] for r in res]
+        tcp_resp = -1
         if len(tcp_times) == 0:
-            return -1
+            logger.warning('_get_tcp_response_time got 0 results')
         else:
-            return sum(tcp_times) / float(len(tcp_times))  #msec
+            tcp_resp = sum(tcp_times) / float(len(tcp_times))  #msec
+            logger.debug('_get_tcp_response_time = {0}'.format(tcp_resp))
+        return tcp_resp
 
     def _get_page_dimension(self, sid):
         q = '''SELECT sum(header_bytes + body_bytes) as netw_bytes, count(*) as nr_netw_obj
