@@ -26,6 +26,7 @@ logger = logging.getLogger('LocalDiagnosisManager')
 
 class LocalDiagnosisManager():
     def __init__(self, dbconn, clientid, sids):
+        logger.debug('LocalDiagnosisManager starting.')
         self.dbconn = dbconn
         self.sids = sids
         self.clientid = clientid
