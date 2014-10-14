@@ -55,7 +55,7 @@ if __name__ == '__main__':
     backupdir = sys.argv[3]
     logger = logging.getLogger('probe')
     config = Configuration(conf_file)        
-    '''
+    
     tstat_out_file = config.get_database_configuration()['tstatfile']
     harfile = config.get_database_configuration()['harfile']
     launcher = PJSLauncher(config)    
@@ -99,7 +99,7 @@ if __name__ == '__main__':
                     os.rename(tracefile, new_fn_trace)
 
     s = TstatDaemonThread(config, 'stop')
-    '''
+
     jc = JSONClient(config)
     try:
         jc.prepare_and_send()
