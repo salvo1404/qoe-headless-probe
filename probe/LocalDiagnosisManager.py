@@ -157,12 +157,14 @@ class LocalDiagnosisManager():
         q = '''select distinct on(cpu_percent, mem_percent) cpu_percent, mem_percent from %s where sid = %d'''\
             % (self.dbconn.get_table_names()['raw'], sid)
         res = self.dbconn.execute_query(q)
-        print (res)
+        r = [-1, -1]
         if len(res) != 1:
             logger.error('multiple sessions with sid = %d' % sid)
-            return -1, -1
-        else:
-            if res[0] != (None,):
-                return float(res[0][0]), float(res[0][1])
-            else:
-                return -1, -1
+            return r
+        stats = res[0]
+        try:
+            r = [float(x) for x in stats]
+        except TypeError:
+            logger.error("Unable to find cpu and mem stats for sid %s " % sid)
+        logger.debug("_get_os_stats = {0}".format(r))
+        return r
