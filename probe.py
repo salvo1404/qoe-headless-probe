@@ -106,4 +106,5 @@ if __name__ == '__main__':
     except:
         logger.error('Problems in sending')
         exit(1)
+    logger.info('Probing complete.')
     exit(0)

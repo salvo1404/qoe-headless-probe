@@ -27,5 +27,5 @@ mkdir $BKP_FOLDER
 sleep 2
 /usr/bin/python probe.py $nr_runs $conf_file $BKP_FOLDER
 
-echo "Done."
+echo "End of main.sh"
 
