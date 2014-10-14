@@ -35,22 +35,22 @@ class LocalDiagnosisManager():
         res = {}
         for sid in self.sids:
             session_start, idletime = self._get_client_idle_time(sid)
-            logger.debug('session_start {0}, idletime {1}'.format(session_start, idletime))
+            logger.debug('sid {3}: session_start {0}, idletime {1}'.format(session_start, idletime, sid))
             httpresp = self._get_http_response_time(sid)
-            logger.debug('httpresp {0}'.format(httpresp))
+            logger.debug('sid {2}: httpresp {0}'.format(httpresp, sid))
             pagedown = self._get_page_downloading_time(sid)
-            logger.debug('pagedown {0}'.format(pagedown))
+            logger.debug('sid {2}: pagedown {0}'.format(pagedown, sid))
             dnsresp = self._get_dns_response_time(sid)
-            logger.debug('dnsresp {0}'.format(dnsresp))
+            logger.debug('sid {2}: dnsresp {0}'.format(dnsresp, sid))
             tcpresp = self._get_tcp_response_time(sid)
-            logger.debug('tcpresp {0}'.format(tcpresp))
+            logger.debug('sid {2}: tcpresp {0}'.format(tcpresp, sid))
             pagedim = self._get_page_dimension(sid)
-            logger.debug('pagedim {0}'.format(pagedim))
+            logger.debug('sid {2}: pagedim {0}'.format(pagedim, sid))
             osstats = self._get_os_stats(sid)
-            logger.debug('osstats {0}'.format(osstats))
+            logger.debug('sid {2}: osstats {0}'.format(osstats, sid))
             res[str(sid)] = {'idle': idletime, 'http': httpresp, 'tcp': tcpresp, 'tot': pagedown,
                              'dns': dnsresp, 'dim': pagedim, 'osstats': osstats, 'start': session_start}
-            logger.debug('do_local_diagnosis : %s' % str(res))
+            logger.debug('do_local_diagnosis for sid {0}: {1}'.format(sid, res))
         return res
          
     def _execute_obj_start_end_query(self, sid, full_load_time=True):
