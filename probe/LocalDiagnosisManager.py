@@ -118,7 +118,6 @@ class LocalDiagnosisManager():
         else:
             page_down = float(res[0][0]) #msec
             logger.debug("_get_page_downloading_time = {0}".format(page_down))
-        print ('page_down %.3f' % page_down)
         return page_down
 
     def _get_dns_response_time(self, sid):
@@ -138,7 +137,7 @@ class LocalDiagnosisManager():
             logger.warning('_get_tcp_response_time got 0 results')
         else:
             tcp_resp = sum(tcp_times) / float(len(tcp_times))  #msec
-            logger.debug('_get_tcp_response_time = {0}'.format(tcp_resp))
+            logger.debug("_get_tcp_response_time = {0}".format(tcp_resp))
         return tcp_resp
 
     def _get_page_dimension(self, sid):
