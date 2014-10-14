@@ -102,11 +102,12 @@ class LocalDiagnosisManager():
         return session_start, idle_time  #msec
     
     def _get_http_response_time(self, sid):
+        logger.debug('_get_http_response_time')
         q = '''select app_rtt from %s where sid = %d and full_load_time > -1'''\
             % (self.dbconn.get_table_names()['raw'], sid)
-        logger.debug(q)
+        logger.debug('{0}'.format(q))
         res = self.dbconn.execute_query(q)
-        logger.debug(res)
+        logger.debug('{0}'.format(res))
         app_rtts = [r[0] for r in res]
         logger.debug('app_rtts {0}'.format(app_rtts))
         http_res_time = -1
