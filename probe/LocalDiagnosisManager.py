@@ -35,24 +35,16 @@ class LocalDiagnosisManager():
         res = {}
         logger.debug('Found {0} sids.'.format(len(self.sids)))
         for sid in self.sids:
-            #logger.debug('sid {0}:'.format(sid))
             session_start, idletime = self._get_client_idle_time(sid)
-            #logger.debug('sid {3}: session_start {0}, idletime {1}'.format(session_start, idletime, sid))
             httpresp = self._get_http_response_time(sid)
-            #logger.debug('sid {2}: httpresp {0}'.format(httpresp, sid))
             pagedown = self._get_page_downloading_time(sid)
-            #logger.debug('sid {2}: pagedown {0}'.format(pagedown, sid))
             dnsresp = self._get_dns_response_time(sid)
-            #logger.debug('sid {2}: dnsresp {0}'.format(dnsresp, sid))
             tcpresp = self._get_tcp_response_time(sid)
-            #logger.debug('sid {2}: tcpresp {0}'.format(tcpresp, sid))
             pagedim = self._get_page_dimension(sid)
-            #logger.debug('sid {2}: pagedim {0}'.format(pagedim, sid))
             osstats = self._get_os_stats(sid)
-            #logger.debug('sid {2}: osstats {0}'.format(osstats, sid))
             res[str(sid)] = {'idle': idletime, 'http': httpresp, 'tcp': tcpresp, 'tot': pagedown,
                              'dns': dnsresp, 'dim': pagedim, 'osstats': osstats, 'start': session_start}
-            logger.debug('do_local_diagnosis for sid {0}: {1}'.format(sid, res))
+            logger.debug("do_local_diagnosis for sid {0}: {1}".format(sid, res))
         return res
          
     def _execute_obj_start_end_query(self, sid, full_load_time=True):
@@ -98,25 +90,22 @@ class LocalDiagnosisManager():
             if rel_starts[i] > end:
                 idle_time += rel_starts[i] - end
             end = rel_ends[i]
-        logger.debug('_get_client_idle_time: {0} {1}'.format(session_start, idle_time))
+        logger.debug("_get_client_idle_time: {0} {1}".format(session_start, idle_time))
         return session_start, idle_time  #msec
     
     def _get_http_response_time(self, sid):
-        print '_get_http_response_time'
         q = '''select app_rtt from %s where sid = %d and full_load_time > -1'''\
             % (self.dbconn.get_table_names()['raw'], sid)
-        print ('{0}'.format(q))
         res = self.dbconn.execute_query(q)
         logger.debug('{0}'.format(res))
         app_rtts = [r[0] for r in res]
-        print ('app_rtts {0}'.format(app_rtts))
         http_res_time = -1
         if len(app_rtts) == 0:
             logger.warning('_get_http_response_time got 0 results')
         else:
             #print Utils.computeQuantile(app_rtts, 0.5)
             http_res_time = sum(app_rtts)/float(len(app_rtts))
-            logger.debug('_get_http_response_time = {0}'.format(http_res_time))
+            logger.debug("_get_http_response_time = {0}".format(http_res_time))
         return http_res_time
 
     def _get_page_downloading_time(self, sid):
@@ -128,7 +117,8 @@ class LocalDiagnosisManager():
             logger.warning('_get_page_downloading_time got 0 results')
         else:
             page_down = float(res[0][0]) #msec
-            logger.debug('_get_page_downloading_time = {0}'.format(page_down))
+            logger.debug("_get_page_downloading_time = {0}".format(page_down))
+        print ('page_down %.3f' % page_down)
         return page_down
 
     def _get_dns_response_time(self, sid):
