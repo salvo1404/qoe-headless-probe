@@ -29,6 +29,7 @@ class LocalDiagnosisManager():
         self.dbconn = dbconn
         self.sids = sids
         self.clientid = clientid
+        logger.debug('LocalDiagnosisManager started...')
     
     def do_local_diagnosis(self):
         res = {}
