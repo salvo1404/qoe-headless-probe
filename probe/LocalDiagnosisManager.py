@@ -150,12 +150,14 @@ class LocalDiagnosisManager():
             nr_obj = int(res[0][1])
         else:
             tot_bytes = 0
+        logger.debug("_get_page_dimension = {0}".format(tot_bytes))
         return tot_bytes
 
     def _get_os_stats(self, sid):
         q = '''select distinct on(cpu_percent, mem_percent) cpu_percent, mem_percent from %s where sid = %d'''\
             % (self.dbconn.get_table_names()['raw'], sid)
         res = self.dbconn.execute_query(q)
+        print (res)
         if len(res) != 1:
             logger.error('multiple sessions with sid = %d' % sid)
             return -1, -1
