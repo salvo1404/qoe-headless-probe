@@ -100,8 +100,8 @@ if __name__ == '__main__':
 
     s = TstatDaemonThread(config, 'stop')
     '''
+    jc = JSONClient(config)
     try:
-        jc = JSONClient(config)
         jc.prepare_and_send()
     except:
         logger.error('Problems in sending')
