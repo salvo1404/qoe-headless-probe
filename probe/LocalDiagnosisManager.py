@@ -33,8 +33,9 @@ class LocalDiagnosisManager():
     
     def do_local_diagnosis(self):
         res = {}
-        logger.debug('Found %d sids.'.format(len(self.sids)))
+        logger.debug('Found {0} sids.'.format(len(self.sids)))
         for sid in self.sids:
+            logger.debug('sid {0}:'.format(sid))
             session_start, idletime = self._get_client_idle_time(sid)
             logger.debug('sid {3}: session_start {0}, idletime {1}'.format(session_start, idletime, sid))
             httpresp = self._get_http_response_time(sid)
