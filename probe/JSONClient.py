@@ -54,6 +54,7 @@ class JSONClient():
         if len(sids) == 0:
             logger.info('Nothing to send (all sent flags are valid). Returning...')
             return
+        logger.debug('Found %d stored sessions to send... ' % len(sids))
         sent_sids = []
         local_stats = self._prepare_local_data(sids)
         local_data = {'clientid': self.probeid, 'local': local_stats}
