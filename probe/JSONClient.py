@@ -134,7 +134,9 @@ class JSONClient():
             logger.warning('Unable to send anything to server.')
 
     def _prepare_local_data(self, sids):
+        logger.debug('calling LocalDiagnosisManager for {0}'.format(self.probeid))
         l = LocalDiagnosisManager(self.db, self.probeid, sids)
+        logger.debug('Got {0}'.format(type(l)))
         return l.do_local_diagnosis()
         
     def send_to_srv(self, data, is_json=False):
