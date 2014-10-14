@@ -64,7 +64,6 @@ class JSONClient():
         for sid in sids:
             measurements.append({'clientid': self.probeid, 'sid': str(sid),
                                  'ts': local_stats[str(sid)]['start'], 'passive': local_stats[str(sid)], 'active': []})
-            #print measurements
 
         if self.srv_mode == 1 or self.srv_mode == 3:
             ret = self.send_to_srv(str_to_send, is_json=True)
@@ -118,7 +117,6 @@ class JSONClient():
                     sent_sids.append(sid)
                 else:
                     logger.warning('Problem sending ping/trace data to server: ONLY locally saved.')
-
 
         if self.srv_mode == 2 or self.srv_mode == 3:
             outfile = open(self.json_file, 'a')
