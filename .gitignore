@@ -10,5 +10,7 @@ probe/thread_err.file
 probe/thread_out.file
 .idea
 .idea/*
+.toflume
+.toflume/*
 probe.conf
 probe/runTstatLiveCapture
