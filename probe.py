@@ -14,6 +14,7 @@ from probe.JSONClient import JSONClient
 import subprocess
 import threading
 import socket
+import tarfile
 
 logging.config.fileConfig('logging.conf')
 
@@ -106,5 +107,13 @@ if __name__ == '__main__':
     except:
         logger.error('Problems in sending')
         exit(1)
-    logger.info('Probing complete.')
+    logger.info('Probing complete. Packing Backups...')
+    for root, _, files in os.walk(backupdir):
+        if len(files) > 0:
+            tar = tarfile.open("%s.tar.gz" % backupdir, "w:gz")
+            tar.add(backupdir)
+            tar.close()
+            #print files
+    shutil.rmtree(backupdir)
+    logger.info('Done. Exiting.')
     exit(0)
