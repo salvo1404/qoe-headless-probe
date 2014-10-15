@@ -14,6 +14,12 @@ if ! [[ $2 =~ $re ]] ; then
    exit 1;
 fi
 
+FLUME_HOME=.toflume
+
+if [ ! -d "$FLUME_HOME" ]; then
+	mkdir $FLUME_HOME
+fi
+
 BKP_FOLDER_HOME=./session_bkp
 
 if [ ! -d "$BKP_FOLDER_HOME" ]; then

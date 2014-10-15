@@ -37,7 +37,7 @@ class JSONClient():
         self.srv_ip = config.get_jsonserver_configuration()['ip']
         self.srv_port = int(config.get_jsonserver_configuration()['port'])
         self.srv_mode = int(config.get_jsonserver_configuration()['mode'])
-        self.json_file = ".toflume/data_tosend.json"
+        self.json_file = ".toflume/data_to_send.json"
         self.db = DBClient(config)
         self.probeid = self._get_client_id_from_db()
     
@@ -47,7 +47,7 @@ class JSONClient():
         assert len(r) == 1
         return int(r[0][0])
         
-    def prepare_and_send(self):
+    def prepare_data(self):
         query = 'select * from %s where not sent' % self.activetable
         res = self.db.execute_query(query)
         sids = list(set([r[0] for r in res]))
@@ -65,13 +65,13 @@ class JSONClient():
             measurements.append({'clientid': self.probeid, 'sid': str(sid),
                                  'ts': local_stats[str(sid)]['start'], 'passive': local_stats[str(sid)], 'active': []})
 
-        if self.srv_mode == 1 or self.srv_mode == 3:
-            ret = self.send_to_srv(str_to_send, is_json=True)
-            if ret:
-                logger.info('sending local data... %s' % ret)
-                sent_sids.append(sid)
-            else:
-                logger.warning('Problem sending local data to server: ONLY locally saved')
+        #if self.srv_mode == 1 or self.srv_mode == 3:
+        #    ret = self.send_to_srv(str_to_send, is_json=True)
+        #    if ret:
+        #        logger.info('sending local data... %s' % ret)
+        #        sent_sids.append(sid)
+        #    else:
+        #        logger.warning('Problem sending local data to server: ONLY locally saved')
 
         for row in res:
             active_data = {'clientid': self.probeid, 'ping': None, 'trace': []}
@@ -109,29 +109,59 @@ class JSONClient():
                 if int(session['sid']) == sid:
                     session['active'].append(active_data)
 
+            #if self.srv_mode == 1 or self.srv_mode == 3:
+            #    ret = self.send_to_srv(active_data)
+            #    if ret:
+            #        logger.info('sending ping/trace data about [%s]: %s ' % (remoteaddress,  ret))
+            #        sent_sids.append(sid)
+            #    else:
+            #        logger.warning('Problem sending ping/trace data to server: ONLY locally saved.')
 
-            if self.srv_mode == 1 or self.srv_mode == 3:
-                ret = self.send_to_srv(active_data)
-                if ret:
-                    logger.info('sending ping/trace data about [%s]: %s ' % (remoteaddress,  ret))
-                    sent_sids.append(sid)
-                else:
-                    logger.warning('Problem sending ping/trace data to server: ONLY locally saved.')
 
-        if self.srv_mode == 2 or self.srv_mode == 3:
-            outfile = open(self.json_file, 'a')
-            for measure in measurements:
-                outfile.write(json.dumps(measure) + "\n")
-            outfile.close()
+        # measurements is a list of dictionaries
+        # one for each session: ['passive', 'active', 'ts', 'clientid', 'sid']
+        return measurements
+        #if self.srv_mode == 2 or self.srv_mode == 3:
+        #    logger.debug('Writing to json file...')
+        #    outfile = open(self.json_file, 'a')
+        #    for measure in measurements:
+        #        outfile.write(json.dumps(measure) + "\n")
+        #    outfile.close()
 
-        final = list(set(sent_sids))
-        if len(final) > 0:
-            for sent_sid in final:
-                update_query = '''update %s set sent = 't' where sid = %d''' % (self.activetable, int(sent_sid))
-                self.db.execute_update(update_query)
-                logger.info('updated sent sid on %s' % self.activetable)
-        else:
-            logger.warning('Unable to send anything to server.')
+        #final = list(set(sent_sids))
+        #if len(final) > 0:
+        #    for sent_sid in final:
+        #        update_query = '''update %s set sent = 't' where sid = %d''' % (self.activetable, int(sent_sid))
+        #        self.db.execute_update(update_query)
+        #        logger.info('updated sent sid on %s' % self.activetable)
+        #else:
+        #    logger.warning('Unable to send anything to server.')
+
+
+    def save_json_file(self, measurements):
+        # measurements is a list of dictionaries
+        # one for each session: ['passive', 'active', 'ts', 'clientid', 'sid']
+        logger.info('Saving json file...')
+        with open(self.json_file, 'w') as out:
+            out.write(json.dumps([m for m in measurements]))
+
+    def send_json_to_srv(self, measurements):
+        logger.info('Contacting server...')
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.connect((self.srv_ip, self.srv_port))
+        except socket.error as e:
+            logger.error('Socket error({0}): {1}'.format(e.errno, e.strerror))
+            return
+
+        data = json.dumps([m for m in measurements])
+        logger.info("Sending %d bytes" % len(data))
+        s.sendall(data + '\n')
+        result = json.loads(s.recv(1024))
+        s.close()
+        logger.info("Received %s" % str(result))
+        logger.info('Connection successful.')
+        return result
 
     def _prepare_local_data(self, sids):
         logger.debug('calling LocalDiagnosisManager for {0}'.format(self.probeid))
@@ -175,7 +205,7 @@ if __name__ == '__main__':
     #url = 'www.google.com'
     c = Configuration(conf_file)
     j = JSONClient(c)
-    j.prepare_and_send()
+    j.prepare_data()
     #print(j.srv_ip, j.srv_port)
     #print j.send_request_for_diagnosis(url, 6)
 

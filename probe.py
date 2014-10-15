@@ -56,7 +56,7 @@ if __name__ == '__main__':
     backupdir = sys.argv[3]
     logger = logging.getLogger('probe')
     config = Configuration(conf_file)        
-
+    '''
     tstat_out_file = config.get_database_configuration()['tstatfile']
     harfile = config.get_database_configuration()['harfile']
     launcher = PJSLauncher(config)    
@@ -100,20 +100,22 @@ if __name__ == '__main__':
                     os.rename(tracefile, new_fn_trace)
 
     s = TstatDaemonThread(config, 'stop')
-
+    '''
     jc = JSONClient(config)
     try:
-        jc.prepare_and_send()
+        measurements = jc.prepare_data()
+        jc.save_json_file(measurements)
+        print 'ok'
+        jc.send_json_to_srv(measurements)
     except:
         logger.error('Problems in sending')
         exit(1)
-    logger.info('Probing complete. Packing Backups...')
-    for root, _, files in os.walk(backupdir):
-        if len(files) > 0:
-            tar = tarfile.open("%s.tar.gz" % backupdir, "w:gz")
-            tar.add(backupdir)
-            tar.close()
-            #print files
-    shutil.rmtree(backupdir)
+    #logger.info('Probing complete. Packing Backups...')
+    #for root, _, files in os.walk(backupdir):
+    #    if len(files) > 0:
+    #        tar = tarfile.open("%s.tar.gz" % backupdir, "w:gz")
+    #        tar.add(backupdir)
+    #        tar.close()
+    #shutil.rmtree(backupdir)
     logger.info('Done. Exiting.')
     exit(0)
