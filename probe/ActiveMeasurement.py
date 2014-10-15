@@ -99,6 +99,7 @@ class Traceroute(Measure):
     def __init__(self, host, maxttl=32):
         Measure.__init__(self, host)
         self.cmd = 'traceroute -n -m %d %s ' % (maxttl, self.target)
+        self.result = None
 
     def run(self):
         fname = self.target + '.traceroute'
@@ -133,6 +134,9 @@ class Traceroute(Measure):
         t_hop.add_measurement(remains)
         return t_hop
 
+    def get_result(self):
+        return self.result
+
 
 class TracerouteHop(object):
     IPADDR_REGEXP = re.compile(r'\d+\.\d+\.\d+\.\d+')
@@ -154,7 +158,7 @@ class TracerouteHop(object):
             self.endpoints = _endpoints[1:]
         self.ip_addr = _endpoints[0]
 
-        clean = [x for x in arr_data if x not in _endpoints and x != '*']
+        clean = [x for x in arr_data if x not in _endpoints and x != '*' and x != '!X']
 
         if len(clean) > 0:
             self.rtt['min'] = min(map(float, clean))
@@ -222,12 +226,3 @@ class Monitor(object):
         self.db.insert_active_measurement(tot)
         logger.info('ping and traceroute saved into db.')
 
-
-if __name__ == '__main__':
-    t = '8.8.8.8'
-    pi = Ping(t)
-    #tr = Traceroute(t)
-    pi.run()
-    #tr.run()
-    print pi.get_result()
-    #print tr.get_result()
