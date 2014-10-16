@@ -128,7 +128,6 @@ class JSONClient():
         result = json.loads(s.recv(1024))
         s.close()
         logger.info("Received %s" % str(result))
-        logger.info('Connection successful.')
         return self.save_result(result)
 
     def save_result(self, result):
