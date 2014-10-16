@@ -65,14 +65,6 @@ class JSONClient():
             measurements.append({'clientid': self.probeid, 'sid': str(sid),
                                  'ts': local_stats[str(sid)]['start'], 'passive': local_stats[str(sid)], 'active': []})
 
-        #if self.srv_mode == 1 or self.srv_mode == 3:
-        #    ret = self.send_to_srv(str_to_send, is_json=True)
-        #    if ret:
-        #        logger.info('sending local data... %s' % ret)
-        #        sent_sids.append(sid)
-        #    else:
-        #        logger.warning('Problem sending local data to server: ONLY locally saved')
-
         for row in res:
             active_data = {'clientid': self.probeid, 'ping': None, 'trace': []}
             count = 0
@@ -109,34 +101,9 @@ class JSONClient():
                 if int(session['sid']) == sid:
                     session['active'].append(active_data)
 
-            #if self.srv_mode == 1 or self.srv_mode == 3:
-            #    ret = self.send_to_srv(active_data)
-            #    if ret:
-            #        logger.info('sending ping/trace data about [%s]: %s ' % (remoteaddress,  ret))
-            #        sent_sids.append(sid)
-            #    else:
-            #        logger.warning('Problem sending ping/trace data to server: ONLY locally saved.')
-
-
         # measurements is a list of dictionaries
         # one for each session: ['passive', 'active', 'ts', 'clientid', 'sid']
         return measurements
-        #if self.srv_mode == 2 or self.srv_mode == 3:
-        #    logger.debug('Writing to json file...')
-        #    outfile = open(self.json_file, 'a')
-        #    for measure in measurements:
-        #        outfile.write(json.dumps(measure) + "\n")
-        #    outfile.close()
-
-        #final = list(set(sent_sids))
-        #if len(final) > 0:
-        #    for sent_sid in final:
-        #        update_query = '''update %s set sent = 't' where sid = %d''' % (self.activetable, int(sent_sid))
-        #        self.db.execute_update(update_query)
-        #        logger.info('updated sent sid on %s' % self.activetable)
-        #else:
-        #    logger.warning('Unable to send anything to server.')
-
 
     def save_json_file(self, measurements):
         # measurements is a list of dictionaries
@@ -161,6 +128,17 @@ class JSONClient():
         s.close()
         logger.info("Received %s" % str(result))
         logger.info('Connection successful.')
+        return self.save_result(result)
+
+    def save_result(self, result):
+        received_sids = result['sids']
+        if len(received_sids) > 0:
+            for sent_sid in received_sids:
+                update_query = '''update %s set sent = 't' where sid = %d''' % (self.activetable, int(sent_sid))
+                self.db.execute_update(update_query)
+                logger.info('updated sent sid on %s' % self.activetable)
+        else:
+            logger.warning('Unable to send anything to server.')
         return result
 
     def _prepare_local_data(self, sids):
@@ -168,23 +146,6 @@ class JSONClient():
         l = LocalDiagnosisManager(self.db, self.probeid, sids)
         logger.debug('Got {0}'.format(type(l)))
         return l.do_local_diagnosis()
-        
-    def send_to_srv(self, data, is_json=False):
-        logger.info('Contacting server...')
-        try:
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.connect((self.srv_ip, self.srv_port))
-        except socket.error as e:
-            logger.error('Socket error({0}): {1}'.format(e.errno, e.strerror))
-            return
-        if not is_json:
-            s.sendall(json.dumps(data) + "\n")
-        else:
-            s.sendall(data + "\n")
-        result = json.loads(s.recv(1024))
-        s.close()
-        logger.info('Connection successful.')
-        return result
 
     def send_request_for_diagnosis(self, url, time_range=6):
         data = {'clientid': self.probeid, 'url': url, 'time_range': time_range}
@@ -195,17 +156,4 @@ class JSONClient():
         result = json.loads(s.recv(1024))
         s.close()
         return result
-
-        
-if __name__ == '__main__':
-    import sys
-    conf_file = sys.argv[1]
-    #url = sys.argv[2]
-    #conf_file='../probe.conf'
-    #url = 'www.google.com'
-    c = Configuration(conf_file)
-    j = JSONClient(c)
-    j.prepare_data()
-    #print(j.srv_ip, j.srv_port)
-    #print j.send_request_for_diagnosis(url, 6)
 
