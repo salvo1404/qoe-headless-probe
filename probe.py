@@ -94,21 +94,28 @@ if __name__ == '__main__':
             monitor = Monitor(config)
             monitor.run_active_measurement(ip_dest)
             logger.debug('Ended Active probing for run n.%d to url %s' % (i, url))
-            for tracefile in os.listdir('.'):
-                if tracefile.endswith('.traceroute'):
-                    new_fn_trace = backupdir + '/' + tracefile + '.run%d' % i
-                    os.rename(tracefile, new_fn_trace)
+            for tracefile in [f for f in os.listdir('.') if f.endswith('.traceroute')]:
+                os.remove(tracefile)
+                #new_fn_trace = backupdir + '/' + tracefile + '.run%d' % i
+                #os.rename(tracefile, new_fn_trace)
 
     s = TstatDaemonThread(config, 'stop')
+
     jc = JSONClient(config)
     try:
         measurements = jc.prepare_data()
-        jc.save_json_file(measurements)
+        json_path_fname = jc.save_json_file(measurements)
         jc.send_json_to_srv(measurements)
     except:
         logger.error('Problems in sending')
         exit(1)
     logger.info('Probing complete. Packing Backups...')
+
+    fname = os.path.basename(json_path_fname)
+    dest_file = os.path.join(backupdir, fname)
+    os.rename(json_path_fname, dest_file)
+
+    exit()
     for root, _, files in os.walk(backupdir):
         if len(files) > 0:
             tar = tarfile.open("%s.tar.gz" % backupdir, "w:gz")

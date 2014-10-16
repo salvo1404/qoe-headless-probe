@@ -111,6 +111,7 @@ class JSONClient():
         logger.info('Saving json file...')
         with open(self.json_file, 'w') as out:
             out.write(json.dumps([m for m in measurements]))
+        return self.json_file
 
     def send_json_to_srv(self, measurements):
         logger.info('Contacting server...')
