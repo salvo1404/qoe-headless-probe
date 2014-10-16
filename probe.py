@@ -115,12 +115,12 @@ if __name__ == '__main__':
     dest_file = os.path.join(backupdir, fname)
     os.rename(json_path_fname, dest_file)
 
-    exit()
     for root, _, files in os.walk(backupdir):
         if len(files) > 0:
             tar = tarfile.open("%s.tar.gz" % backupdir, "w:gz")
             tar.add(backupdir)
             tar.close()
+            logger.info('Tar.gz backup file created.')
     shutil.rmtree(backupdir)
     logger.info('Done. Exiting.')
     exit(0)
