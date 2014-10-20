@@ -247,6 +247,7 @@ class Monitor(object):
 
         #trace = Traceroute(ip_dest)
         traceicmp = TracerouteIcmp(self.config.get_traceroute_script(), ip_dest)
-        ping = Ping(ip_dest)
         traceicmp.run()
+        ping = Ping(ip_dest)
+        ping.run()
 

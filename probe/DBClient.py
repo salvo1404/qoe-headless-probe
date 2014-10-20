@@ -57,6 +57,8 @@ class DBClient:
             session_start TIMESTAMP,
             server_ip TEXT,
             full_load_time INT,
+            cpu_percent INT,
+            mem_percent INT,
             is_sent BOOLEAN,
             PRIMARY KEY (sid, session_url, session_start, server_ip)
         ) ''' % self.dbconfig['aggregatesummary'])
@@ -306,7 +308,8 @@ class DBClient:
         return res
 
     def pre_process_raw_table(self):
-        logger.info('Pre-processing data from raw table')
+        # TODO: page_dim as sum of netw_bytes in summary
+        logger.info('Pre-processing data from raw table...')
         # eliminate redirection (e.g., http://www.google.fr/?gfe_rd=cr&ei=W8c_VLu9OcjQ8geqsIGQDA)
         q = '''SELECT DISTINCT sid, full_load_time FROM %s GROUP BY sid, full_load_time HAVING COUNT(sid) > 1''' % \
             self.dbconfig['rawtable']
@@ -318,14 +321,16 @@ class DBClient:
         d = dict(res)
         dic = {}
         for sid in d.keys():
-            q = '''select remote_ip, session_url, session_start from %s where sid = %d and session_url = uri''' % \
-                (self.dbconfig['rawtable'], sid)
+            q = '''select remote_ip, session_url, session_start, cpu_percent, mem_percent from %s
+            where sid = %d and session_url = uri''' % (self.dbconfig['rawtable'], sid)
+
             res = self.execute_query(q)
             if len(res) > 1:
                 logger.warning("Multiple tuples for sid {0}: {1}".format(sid, res))
 
             dic[str(sid)] = {'server_ip': res[0][0], 'full_load_time': d[sid],
                              'session_start': res[0][2], 'session_url': res[0][1],
+                             'cpu_percent': res[0][3], 'mem_percent': res[0][4],
                              'browser': []}
 
             q = '''select distinct on (remote_ip) remote_ip, count(*) as cnt, sum(app_rtt) as s_app,
@@ -359,8 +364,11 @@ class DBClient:
             start = obj['session_start']
             flt = obj['full_load_time']
             ip = obj['server_ip']
-            q = stub % ('sid, session_url, session_start, full_load_time, server_ip, is_sent',
-                        "%d, '%s', '%s', %d, '%s', '%d'" % (int(sid), url, start, flt, ip, False))
+            cpu_percent = obj['cpu_percent']
+            mem_percent = obj['mem_percent']
+            q = stub % ('sid, session_url, session_start, full_load_time, server_ip, cpu_percent, mem_percent, is_sent',
+                        "%d, '%s', '%s', %d, '%s', %d, %d, '%d'" %
+                        (int(sid), url, start, flt, ip, cpu_percent, mem_percent, False))
             cursor = self.conn.cursor()
             cursor.execute(q)
             res = cursor.fetchone()
@@ -372,5 +380,8 @@ class DBClient:
                                                             dic['sum_syn'], dic['sum_http'], dic['sum_rcv_time'])
                 q = stub2 % (s,v)
                 cursor.execute(q)
+
             self.conn.commit()
+
         logger.info('Aggregate tables populated.')
+        return True
