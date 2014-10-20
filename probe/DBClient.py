@@ -46,6 +46,34 @@ class DBClient:
     def create_tables(self):
         self.create_plugin_table()
         self.create_activemeasurement_table()
+        self.create_aggregate_tables()
+
+    def create_aggregate_tables(self):
+        cursor = self.conn.cursor()
+        cursor.execute('''CREATE TABLE IF NOT EXISTS %s (
+            row_id SERIAL,
+            sid INT,
+            session_url TEXT,
+            session_start TIMESTAMP,
+            server_ip TEXT,
+            full_load_time INT,
+            is_sent BOOLEAN,
+            PRIMARY KEY (sid, session_url, session_start, server_ip)
+        ) ''' % self.dbconfig['aggregatesummary'])
+
+        cursor.execute('''CREATE TABLE IF NOT EXISTS %s (
+            reference_id INT,
+            base_url TEXT,
+            ip TEXT,
+            netw_bytes INT,
+            nr_obj INT,
+            sum_syn INT,
+            sum_http INT,
+            sum_rcv_time INT,
+            PRIMARY KEY (reference_id, ip)
+        ) ''' % self.dbconfig['aggregatedetails'])
+
+        self.conn.commit()
 
     def create_idtable(self):
         cursor = self.conn.cursor()
@@ -123,7 +151,7 @@ class DBClient:
     def create_activemeasurement_table(self):
         cursor = self.conn.cursor()
         # PSQL > 9.2 change TEXT to JSON
-        cursor.execute('''CREATE TABLE IF NOT EXISTS %s (sid INT8, session_url TEXT,
+        cursor.execute('''CREATE TABLE IF NOT EXISTS %s (ip_dest INET, sid INT8, session_url TEXT,
         remote_ip INET, ping TEXT, trace TEXT, sent BOOLEAN)''' % self.dbconfig['activetable'])
         self.conn.commit()
 
@@ -237,7 +265,7 @@ class DBClient:
         #print 'result _get_inserted_sid_addresses', result
         return result
 
-    def insert_active_measurement(self, tot_active_measurement):
+    def insert_active_measurement(self, ip_dest, tot_active_measurement):
         #data['ping'] = json obj
         #data['trace'] = json obj
         cur = self.conn.cursor()
@@ -247,8 +275,8 @@ class DBClient:
                 ip = dic['ip']
                 ping = dic['ping']
                 trace = dic['trace']
-                query = '''INSERT into %s values ('%d','%s','%s','%s','%s','%s')
-                ''' % (self.dbconfig['activetable'], sid, url, ip, ping, trace, 'f') #false as not sent yet
+                query = '''INSERT into %s values ('%s', '%d','%s','%s','%s','%s','%s')
+                ''' % (self.dbconfig['activetable'], ip_dest, sid, url, ip, ping, trace, 'f') #false as not sent yet
                 cur.execute(query)
             logger.info('inserted active measurements for sid %s: ' % sid)
         self.conn.commit()
@@ -257,7 +285,6 @@ class DBClient:
         return {'raw': self.dbconfig['rawtable'], 'active': self.dbconfig['activetable']}
 
     def force_update_full_load_time(self, sid):
-        import datetime
         q = '''select session_start, end_time from %s where sid = %d''' % (self.dbconfig['rawtable'], sid)
         res = self.execute_query(q)
         session_start = list(set([x[0] for x in res]))[0]
@@ -269,7 +296,6 @@ class DBClient:
         return forced_load_time
         
     def check_for_zero_full_load_time(self):
-        res = []
         q = '''select sid from %s where full_load_time = 0''' % self.dbconfig['rawtable']
         res = self.execute_query(q)
         sids = [int(x[0]) for x in res]
@@ -278,3 +304,71 @@ class DBClient:
                 self.force_update_full_load_time(s)
                 res.append(s)
         return res
+
+    def pre_process_raw_table(self):
+        logger.info('Pre-processing data from raw table')
+        # eliminate redirection (e.g., http://www.google.fr/?gfe_rd=cr&ei=W8c_VLu9OcjQ8geqsIGQDA)
+        q = '''SELECT DISTINCT sid, full_load_time FROM %s GROUP BY sid, full_load_time HAVING COUNT(sid) > 1''' % \
+            self.dbconfig['rawtable']
+        res = self.execute_query(q)
+        if len(res) == 0:
+            logger.warning('pre_process: no sids found')
+            return
+
+        d = dict(res)
+        dic = {}
+        for sid in d.keys():
+            q = '''select remote_ip, session_url, session_start from %s where sid = %d and session_url = uri''' % \
+                (self.dbconfig['rawtable'], sid)
+            res = self.execute_query(q)
+            if len(res) > 1:
+                logger.warning("Multiple tuples for sid {0}: {1}".format(sid, res))
+
+            dic[str(sid)] = {'server_ip': res[0][0], 'full_load_time': d[sid],
+                             'session_start': res[0][2], 'session_url': res[0][1],
+                             'browser': []}
+
+            q = '''select distinct on (remote_ip) remote_ip, count(*) as cnt, sum(app_rtt) as s_app,
+            sum(rcv_time) as s_rcv, sum(body_bytes) as s_body, sum(syn_time) as s_syn from %s where sid = %d
+            group by remote_ip;''' % (self.dbconfig['rawtable'], sid)
+            res = self.execute_query(q)
+            for tup in res:
+                dic[str(sid)]['browser'].append({'ip': tup[0], 'nr_obj': int(tup[1]), 'sum_http': int(tup[2]),
+                                                 'sum_rcv_time': int(tup[3]), 'netw_bytes': int(tup[4]),
+                                                 'sum_syn': int(tup[5])})
+
+            for el in dic[str(sid)]['browser']:
+                ip = el['ip']
+                q = '''select uri from %s where remote_ip = \'%s\'''' % (self.dbconfig['rawtable'], ip)
+                res = self.execute_query(q)
+                el.update({'base_url': '/'.join(res[0][0].split('/')[:3])})
+                #if len(res) > 1:
+                #    el.update({'base_url': os.path.commonprefix([x[0] for x in res])})
+                #else:
+                #    el.update({'base_url': '/'.join(res[0][0].split('/')[:3])})
+        return dic
+
+    def insert_to_aggregate(self, pre_processed):
+        table_name_summary = self.dbconfig['aggregatesummary']
+        table_name_details = self.dbconfig['aggregatedetails']
+        stub = 'INSERT INTO ' + table_name_summary + ' (%s) values (%s) RETURNING row_id'
+        stub2 = 'INSERT INTO ' + table_name_details + ' (%s) values (%s)'
+        for sid, obj in pre_processed.iteritems():
+            url = DBClient._unicode_to_ascii(obj['session_url'])
+            start = obj['session_start']
+            flt = obj['full_load_time']
+            ip = obj['server_ip']
+            q = stub % ('sid, session_url, session_start, full_load_time, server_ip, is_sent',
+                        "%d, '%s', '%s', %d, '%s', '%d'" % (int(sid), url, start, flt, ip, False))
+            cursor = self.conn.cursor()
+            cursor.execute(q)
+            res = cursor.fetchone()
+            reference = int(res[0])
+            for dic in (obj['browser']):
+                s = 'reference_id, base_url, ip, netw_bytes, nr_obj, sum_syn, sum_http, sum_rcv_time'
+                v = '%d, \'%s\', \'%s\', %d, %d, %d, %d, %d' % (reference, dic['base_url'], dic['ip'],
+                                                            dic['netw_bytes'], dic['nr_obj'],
+                                                            dic['sum_syn'], dic['sum_http'], dic['sum_rcv_time'])
+                q = stub2 % (s,v)
+                cursor.execute(q)
+            self.conn.commit()
