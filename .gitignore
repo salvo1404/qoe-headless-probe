@@ -14,3 +14,4 @@ probe/thread_out.file
 .toflume/*
 probe.conf
 probe/runTstatLiveCapture
+script/*.out

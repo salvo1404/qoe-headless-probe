@@ -138,9 +138,9 @@ class Traceroute(Measure):
 
 
 class TracerouteIcmp(Traceroute):
-    def __init__(self, host, maxttl=32):
+    def __init__(self, script, host, maxttl=32):
         Traceroute.__init__(self, host, maxttl)
-        self.cmd = "%s %s %d" % ('script/tr_as_root.out', host, maxttl)
+        self.cmd = "%s %s %d" % (script, host, maxttl)
         self.out = ''
         self.err = ''
 
@@ -244,7 +244,9 @@ class Monitor(object):
         for sid, dic in self.inserted_sid.iteritems():
             logger.debug("Session {0} to url {1}: resolved {2}, objects from found {3}".format(sid, dic['url'],
                                                                                                ip_dest, dic['address']))
-        trace = Traceroute(ip_dest)
+
+        #trace = Traceroute(ip_dest)
+        traceicmp = TracerouteIcmp(self.config.get_traceroute_script(), ip_dest)
         ping = Ping(ip_dest)
-        trace.run()
+        traceicmp.run()
 

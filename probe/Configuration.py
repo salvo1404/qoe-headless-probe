@@ -44,6 +44,8 @@ class Configuration():
     def get_jsonserver_configuration(self):
         return self.__extract_values_to_dictionary(self.config.items('server'))
 
+    def get_traceroute_script(self):
+        return self.__extract_values_to_dictionary(self.config.items('active'))['script']
 
 if __name__ == '__main__':
     c = Configuration('probe.conf')
