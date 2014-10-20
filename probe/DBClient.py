@@ -346,7 +346,8 @@ class DBClient:
                 #    el.update({'base_url': os.path.commonprefix([x[0] for x in res])})
                 #else:
                 #    el.update({'base_url': '/'.join(res[0][0].split('/')[:3])})
-        return dic
+
+        return self.insert_to_aggregate(dic)
 
     def insert_to_aggregate(self, pre_processed):
         table_name_summary = self.dbconfig['aggregatesummary']
@@ -372,3 +373,4 @@ class DBClient:
                 q = stub2 % (s,v)
                 cursor.execute(q)
             self.conn.commit()
+        logger.info('Aggregate tables populated.')
