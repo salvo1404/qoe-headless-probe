@@ -70,7 +70,6 @@ class Ping(Measure):
 
         self.result = json.dumps(res)
 
-
     def parse(self, ping_output):
         matcher = re.compile(r'PING ([a-zA-Z0-9.\-]+) \(')
         host = Ping._get_match_groups(ping_output, matcher)[0]
@@ -138,6 +137,21 @@ class Traceroute(Measure):
         return self.result
 
 
+class TracerouteIcmp(Traceroute):
+    def __init__(self, host, maxttl=32):
+        Traceroute.__init__(self, host, maxttl)
+        self.cmd = "%s %s %d" % ('script/tr_as_root.out', host, maxttl)
+        self.out = ''
+        self.err = ''
+
+    def run_in_memory(self):
+        traceroute = subprocess.Popen(self.cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        self.out, self.err = traceroute.communicate()
+        if not self.err:
+            return self.out
+        return ''
+
+
 class TracerouteHop(object):
     IPADDR_REGEXP = re.compile(r'\d+\.\d+\.\d+\.\d+')
 
@@ -180,7 +194,6 @@ class Monitor(object):
         logger.info('Started active monitor: %d session(s).' % len(self.inserted_sid))
 
     def run_active_measurement(self, ip_dest):
-        ip_from_url = ip_dest
         tot = {}
         probed_ip = {}
         for sid, dic in self.inserted_sid.iteritems():
@@ -223,6 +236,15 @@ class Monitor(object):
                 probed_ip[ip].append(sid)
                 logger.info('Computed Active Measurement for %s in session %d' % (ip, sid))
 
-        self.db.insert_active_measurement(tot)
+        self.db.insert_active_measurement(ip_dest, tot)
         logger.info('ping and traceroute saved into db.')
+
+    def do_measure(self, ip_dest):
+        print ip_dest
+        for sid, dic in self.inserted_sid.iteritems():
+            logger.debug("Session {0} to url {1}: resolved {2}, objects from found {3}".format(sid, dic['url'],
+                                                                                               ip_dest, dic['address']))
+        trace = Traceroute(ip_dest)
+        ping = Ping(ip_dest)
+        trace.run()
 
