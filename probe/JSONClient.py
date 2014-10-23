@@ -50,7 +50,7 @@ class JSONClient():
     def prepare_data(self):
         query = 'select * from %s where not sent' % self.activetable
         res = self.db.execute_query(query)
-        sids = list(set([r[0] for r in res]))
+        sids = list(set([r[1] for r in res]))
         if len(sids) == 0:
             logger.info('Nothing to send (all sent flags are valid). Returning...')
             return
@@ -68,11 +68,11 @@ class JSONClient():
         for row in res:
             active_data = {'clientid': self.probeid, 'ping': None, 'trace': []}
             count = 0
-            sid = int(row[0])
-            session_url = row[1]
-            remoteaddress = row[2]
-            ping = json.loads(row[3])
-            trace = json.loads(row[4])
+            sid = int(row[1])
+            session_url = row[2]
+            remoteaddress = row[3]
+            ping = json.loads(row[4])
+            trace = json.loads(row[5])
 
             active_data['ping'] = {'sid': sid, 'session_url': session_url, 'remoteaddress': remoteaddress,
                                    'min': ping['min'], 'max': ping['max'], 'avg': ping['avg'], 'std': ping['std'],

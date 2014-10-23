@@ -240,14 +240,35 @@ class Monitor(object):
         logger.info('ping and traceroute saved into db.')
 
     def do_measure(self, ip_dest):
-        print ip_dest
         for sid, dic in self.inserted_sid.iteritems():
             logger.debug("Session {0} to url {1}: resolved {2}, objects from found {3}".format(sid, dic['url'],
                                                                                                ip_dest, dic['address']))
+        tot = {}
+        for sid, dic in self.inserted_sid.iteritems():
+            if sid not in tot.keys():
+                tot[sid] = []
+            for ip in dic['address']:
+                traceicmp = TracerouteIcmp(self.config.get_traceroute_script(), ip)
+                traceicmp.run()
+                ping = Ping(ip)
+                ping.run()
+                tot[sid].append({'url': dic['url'], 'ip': ip,
+                                 'ping': ping.get_result(), 'trace': traceicmp.get_result()})
+                logger.info("Computed Active Measurement for {0} in session {1}".format(ip, sid))
 
-        #trace = Traceroute(ip_dest)
-        traceicmp = TracerouteIcmp(self.config.get_traceroute_script(), ip_dest)
-        traceicmp.run()
-        ping = Ping(ip_dest)
-        ping.run()
+        self.db.insert_active_measurement(ip_dest, tot)
+        logger.info('ping and traceroute saved into db.')
 
+        #traceicmp = TracerouteIcmp(self.config.get_traceroute_script(), ip_dest)
+        #traceicmp.run()
+        #ping = Ping(ip_dest)
+        #ping.run()
+        #dic = {'ip': ip_dest, 'ping': ping.get_result(), 'trace': traceicmp.get_result()}
+
+
+
+if __name__ == '__main__':
+    from Configuration import Configuration
+    c = Configuration('probe.conf')
+    m = Monitor(c)
+    m.do_measure('213.92.16.171')

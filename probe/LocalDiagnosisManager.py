@@ -36,13 +36,15 @@ class LocalDiagnosisManager():
         logger.debug('Found {0} sids.'.format(len(self.sids)))
         for sid in self.sids:
             session_start, idletime = self._get_client_idle_time(sid)
+            #logger.debug("session start {0}".format(session_start))
             httpresp = self._get_http_response_time(sid)
             pagedown = self._get_page_downloading_time(sid)
             dnsresp = self._get_dns_response_time(sid)
             tcpresp = self._get_tcp_response_time(sid)
             pagedim = self._get_page_dimension(sid)
             osstats = self._get_os_stats(sid)
-            res[str(sid)] = {'idle': idletime, 'http': httpresp, 'tcp': tcpresp, 'tot': pagedown,
+            ip_dest = self._get_ip_dest(sid)
+            res[str(sid)] = {'ip_dest': ip_dest, 'idle': idletime, 'http': httpresp, 'tcp': tcpresp, 'tot': pagedown,
                              'dns': dnsresp, 'dim': pagedim, 'osstats': osstats, 'start': session_start}
             logger.debug("do_local_diagnosis for sid {0}: {1}".format(sid, res))
         return res
@@ -141,6 +143,7 @@ class LocalDiagnosisManager():
         return tcp_resp
 
     def _get_page_dimension(self, sid):
+        # header_bytes missing in phantomJS
         q = '''SELECT sum(header_bytes + body_bytes) as netw_bytes, count(*) as nr_netw_obj
             from %s where sid = %d and full_load_time > -1''' % (self.dbconn.get_table_names()['raw'], sid)
         res = self.dbconn.execute_query(q)
@@ -168,3 +171,15 @@ class LocalDiagnosisManager():
             logger.error("Unable to find cpu and mem stats for sid %s " % sid)
         logger.debug("_get_os_stats = {0}".format(r))
         return r
+
+    def _get_ip_dest(self, sid):
+        q = '''select distinct ip_dest, count(*) as cnt from %s where sid = %d group by ip_dest order by cnt desc''' % \
+            (self.dbconn.get_table_names()['active'], sid)
+        res = self.dbconn.execute_query(q)
+        if len(res) == 0:
+            logger.error("No destination ip found for sid {0}".format(sid))
+            ip_dest = -1
+        if len(res) > 1:
+            logger.warning("Found more destination ip for sid {0}: {1}".format(sid, res))
+        ip_dest = res[0][0]
+        return ip_dest

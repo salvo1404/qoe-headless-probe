@@ -57,6 +57,7 @@ class DBClient:
             session_start TIMESTAMP,
             server_ip TEXT,
             full_load_time INT,
+            page_dim INT,
             cpu_percent INT,
             mem_percent INT,
             is_sent BOOLEAN,
@@ -247,25 +248,49 @@ class DBClient:
 
     def get_inserted_sid_addresses(self):
         result = {}
-        q = '''select distinct on (sid, session_url, remote_ip) sid, session_url, remote_ip
-        FROM %s where sid not in (select distinct sid from active)''' % self.dbconfig['rawtable']
+        q = '''select distinct d.ip, s.session_url, s.sid
+        from %s d, %s s
+        where d.reference_id in
+        (select row_id from %s where not is_sent);
+        ''' % (self.dbconfig['aggregatedetails'], self.dbconfig['aggregatesummary'], self.dbconfig['aggregatesummary'])
         res = self.execute_query(q)
-        for tup in res:
-            cur_sid = tup[0]
-            cur_url = tup[1]
-            cur_addr = tup[2]
-            if cur_addr == '0.0.0.0':
-                continue
-            if cur_sid in result.keys():
-                if result[cur_sid]['url'] == cur_url:
-                    result[cur_sid]['address'].append(cur_addr)
-                else:
-                    result[cur_sid]['url'] = cur_url
-                    result[cur_sid]['address'].append(cur_addr)
-            else:
-                result[cur_sid] = {'url': cur_url, 'address': [cur_addr]}
+        ip_addrs = [x[0] for x in res]
+        session_urls = [x[1] for x in res]
+        sids = [str(x[2]) for x in res]
+        print len(ip_addrs) == len(session_urls) == len(sids)
+        if len(set(sids)) == 1 and len(set(session_urls)) == 1:
+            result[sids[0]] = {'url': session_urls[0], 'address': ip_addrs}
+            return result
+        else:
+            for i in range(len(sids)):
+                cur_sid = sids[i]
+                if cur_sid not in result.keys():
+                    result[cur_sid] = {}
+                    result[cur_sid]['url'] = set([])
+                    result[cur_sid]['address'] = set([])
+                result[cur_sid]['url'].append(session_urls[i])
+                result[cur_sid]['address'].append(ip_addrs[i])
+            return result
+
+        #q = '''select distinct on (sid, session_url, remote_ip) sid, session_url, remote_ip
+        #FROM %s where sid not in (select distinct sid from active)''' % self.dbconfig['rawtable']
+        #res = self.execute_query(q)
+        #for tup in res:
+        #    cur_sid = tup[0]
+        #    cur_url = tup[1]
+        #    cur_addr = tup[2]
+        #    if cur_addr == '0.0.0.0':
+        #        continue
+        #    if cur_sid in result.keys():
+        #        if result[cur_sid]['url'] == cur_url:
+        #            result[cur_sid]['address'].append(cur_addr)
+        #        else:
+        #            result[cur_sid]['url'] = cur_url
+        #            result[cur_sid]['address'].append(cur_addr)
+        #    else:
+        #        result[cur_sid] = {'url': cur_url, 'address': [cur_addr]}
         #print 'result _get_inserted_sid_addresses', result
-        return result
+        #return result
 
     def insert_active_measurement(self, ip_dest, tot_active_measurement):
         #data['ping'] = json obj
@@ -277,8 +302,9 @@ class DBClient:
                 ip = dic['ip']
                 ping = dic['ping']
                 trace = dic['trace']
-                query = '''INSERT into %s values ('%s', '%d','%s','%s','%s','%s','%s')
-                ''' % (self.dbconfig['activetable'], ip_dest, sid, url, ip, ping, trace, 'f') #false as not sent yet
+                query = '''INSERT into %s (ip_dest, sid, session_url, remote_ip, ping, trace, sent ) values
+                ('%s', %d, '%s', '%s', '%s','%s', %r) ''' % (self.dbconfig['activetable'],
+                                                         ip_dest, int(sid), url, ip, ping, trace, False)  #TODO remove false on table
                 cur.execute(query)
             logger.info('inserted active measurements for sid %s: ' % sid)
         self.conn.commit()
@@ -337,10 +363,14 @@ class DBClient:
             sum(rcv_time) as s_rcv, sum(body_bytes) as s_body, sum(syn_time) as s_syn from %s where sid = %d
             group by remote_ip;''' % (self.dbconfig['rawtable'], sid)
             res = self.execute_query(q)
+            page_dim = 0
             for tup in res:
                 dic[str(sid)]['browser'].append({'ip': tup[0], 'nr_obj': int(tup[1]), 'sum_http': int(tup[2]),
                                                  'sum_rcv_time': int(tup[3]), 'netw_bytes': int(tup[4]),
                                                  'sum_syn': int(tup[5])})
+                page_dim += int(tup[4])
+
+            dic[str(sid)].update({'page_dim': page_dim})
 
             for el in dic[str(sid)]['browser']:
                 ip = el['ip']
@@ -363,12 +393,13 @@ class DBClient:
             url = DBClient._unicode_to_ascii(obj['session_url'])
             start = obj['session_start']
             flt = obj['full_load_time']
+            page_dim = obj['page_dim']
             ip = obj['server_ip']
             cpu_percent = obj['cpu_percent']
             mem_percent = obj['mem_percent']
-            q = stub % ('sid, session_url, session_start, full_load_time, server_ip, cpu_percent, mem_percent, is_sent',
-                        "%d, '%s', '%s', %d, '%s', %d, %d, '%d'" %
-                        (int(sid), url, start, flt, ip, cpu_percent, mem_percent, False))
+            q = stub % ('sid, session_url, session_start, full_load_time, page_dim, server_ip, cpu_percent, '
+                        'mem_percent, is_sent', "%d, '%s', '%s', %d, %d, '%s', %d, %d, %r" %
+                        (int(sid), url, start, flt, page_dim, ip, cpu_percent, mem_percent, False))
             cursor = self.conn.cursor()
             cursor.execute(q)
             res = cursor.fetchone()
@@ -385,3 +416,10 @@ class DBClient:
 
         logger.info('Aggregate tables populated.')
         return True
+
+
+if __name__ == '__main__':
+    from Configuration import Configuration
+    c = Configuration('probe.conf')
+    d = DBClient(c)
+    print d.get_inserted_sid_addresses()
