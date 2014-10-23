@@ -107,11 +107,7 @@ if __name__ == '__main__':
     jc = JSONClient(config)
     measurements = jc.prepare_data()
     json_path_fname = jc.save_json_file(measurements)
-    try:
-        jc.send_json_to_srv(measurements)
-    except:
-        logger.error('Problems in sending')
-        exit(1)
+    jc.send_json_to_srv(measurements)
     logger.info('Probing complete. Packing Backups...')
 
     fname = os.path.basename(json_path_fname)
