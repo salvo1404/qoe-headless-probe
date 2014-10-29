@@ -143,13 +143,29 @@ class TracerouteIcmp(Traceroute):
         self.cmd = "%s %s %d" % (script, host, maxttl)
         self.out = ''
         self.err = ''
+        self.result = None
 
     def run_in_memory(self):
         traceroute = subprocess.Popen(self.cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         self.out, self.err = traceroute.communicate()
         if not self.err:
-            return self.out
-        return ''
+            self.parse_result()
+            if self.result:
+                return True
+        return False
+
+    def parse_result(self):
+        result = []
+        f = self.out.strip().split("\n")
+        for el in f:
+            if re.match('traceroute', el):
+                continue
+            else:
+                hop = [x for x in el.strip().split() if x != 'ms']
+                thop = TracerouteHop(int(hop[0]))
+                thop.add_measurement(hop[1:])
+                result.append(thop.__dict__)
+        self.result = json.dumps(result)
 
 
 class TracerouteHop(object):
@@ -210,7 +226,7 @@ class Monitor(object):
                 if len(probed_ip[ip]) > 1:
                     logger.debug('IP address [%s] already computed, skipping new ping/trace' % ip)
                     c_sid = probed_ip[ip][0]
-                    logger.debug('First sid found for IP [%s] : %d' % (ip, c_sid))
+                    logger.debug("First sid found for IP [{0}] : {1}".format(ip, c_sid))
                     logger.debug('Found %d measurements. ' % len(tot[c_sid]))
                     ping = tot[c_sid][0]['ping']
                     logger.debug('Ping for IP [%s] : %s' % (ip, str(ping)))
@@ -226,7 +242,7 @@ class Monitor(object):
                     logger.debug('Running: %s ' % trace.get_cmd())
                     trace.run()
 
-                logger.debug('sid = %d, c_sid = %d (if equals, new IP/session)' % (sid, c_sid))
+                logger.debug("sid = {0}, c_sid = {1} (if equals, new IP/session)".format(sid, c_sid))
 
                 if not found:
                     tot[sid].append({'url': url, 'ip': ip, 'ping': ping.get_result(), 'trace': trace.get_result()})
@@ -234,7 +250,7 @@ class Monitor(object):
                     tot[sid].append({'url': url, 'ip': ip, 'ping': ping, 'trace': trace})
 
                 probed_ip[ip].append(sid)
-                logger.info('Computed Active Measurement for %s in session %d' % (ip, sid))
+                logger.info("Computed Active Measurement for {0} in session {1}".format(ip, sid))
 
         self.db.insert_active_measurement(ip_dest, tot)
         logger.info('ping and traceroute saved into db.')
@@ -244,6 +260,8 @@ class Monitor(object):
             logger.debug("Session {0} to url {1}: resolved {2}, objects from found {3}".format(sid, dic['url'],
                                                                                                ip_dest, dic['address']))
         tot = {}
+        print (self.inserted_sid)
+        # TODO: more logic here. e.g., if nr_obj is big
         for sid, dic in self.inserted_sid.iteritems():
             if sid not in tot.keys():
                 tot[sid] = []
@@ -259,16 +277,18 @@ class Monitor(object):
         self.db.insert_active_measurement(ip_dest, tot)
         logger.info('ping and traceroute saved into db.')
 
-        #traceicmp = TracerouteIcmp(self.config.get_traceroute_script(), ip_dest)
-        #traceicmp.run()
-        #ping = Ping(ip_dest)
-        #ping.run()
-        #dic = {'ip': ip_dest, 'ping': ping.get_result(), 'trace': traceicmp.get_result()}
-
+    # one single traceroute
+    # ping to step 1,2,3, dest
+    # to feed the diagnosis
+    def do_single_measure(self, ip_dest):
+        tot = {}
+        traceicmp = TracerouteIcmp(self.config.get_traceroute_script(), ip_dest)
+        if traceicmp.run_in_memory():
+            print traceicmp.get_result()
 
 
 if __name__ == '__main__':
     from Configuration import Configuration
     c = Configuration('probe.conf')
     m = Monitor(c)
-    m.do_measure('213.92.16.171')
+    m.do_single_measure('213.92.16.191')

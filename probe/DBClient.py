@@ -61,11 +61,11 @@ class DBClient:
             cpu_percent INT,
             mem_percent INT,
             is_sent BOOLEAN,
-            PRIMARY KEY (sid, session_url, session_start, server_ip)
+            PRIMARY KEY (sid, session_start)
         ) ''' % self.dbconfig['aggregatesummary'])
 
         cursor.execute('''CREATE TABLE IF NOT EXISTS %s (
-            reference_id INT,
+            sid INT,
             base_url TEXT,
             ip TEXT,
             netw_bytes INT,
@@ -73,7 +73,7 @@ class DBClient:
             sum_syn INT,
             sum_http INT,
             sum_rcv_time INT,
-            PRIMARY KEY (reference_id, ip)
+            PRIMARY KEY (sid, ip)
         ) ''' % self.dbconfig['aggregatedetails'])
 
         self.conn.commit()
@@ -248,31 +248,22 @@ class DBClient:
 
     def get_inserted_sid_addresses(self):
         result = {}
-        q = '''select distinct d.ip, s.session_url, s.sid
-        from %s d, %s s
-        where d.reference_id in
-        (select row_id from %s where not is_sent);
-        ''' % (self.dbconfig['aggregatedetails'], self.dbconfig['aggregatesummary'], self.dbconfig['aggregatesummary'])
+        q = '''select distinct a.sid, a.ip, b.session_url
+        from %s a, %s b
+        where a.sid = b.sid and not b.is_sent;''' \
+            % (self.dbconfig['aggregatedetails'], self.dbconfig['aggregatesummary'])
         res = self.execute_query(q)
-        #print res
-        #ip_addrs = [x[0] for x in res]
-        #session_urls = [x[1] for x in res]
-        #sids = [str(x[2]) for x in res]
-        #print len(ip_addrs) == len(session_urls) == len(sids)
-        #print ip_addrs
-        #print session_urls
-        #print sids
         for tup in res:
-            sid = str(tup[2])
+            sid = str(tup[0])
             if sid not in result.keys():
-                result[sid] = {'url': tup[1], 'address': [tup[0]]}
+                result[sid] = {'url': tup[2], 'address': [tup[1]]}
             else:
-                if tup[1] != result[sid]['url']:
+                if tup[2] != result[sid]['url']:
                     logger.error("Misleading url in fetched data.")
                     logger.error("{0} -> {1}".format(res, tup))
 
                 tmp_addrs = result[sid]['address']
-                tmp_addrs.append(tup[0])
+                tmp_addrs.append(tup[1])
                 result[sid]['address'] = list(set(tmp_addrs))
 
         return result
@@ -342,14 +333,16 @@ class DBClient:
         # TODO: page_dim as sum of netw_bytes in summary
         logger.info('Pre-processing data from raw table...')
         # eliminate redirection (e.g., http://www.google.fr/?gfe_rd=cr&ei=W8c_VLu9OcjQ8geqsIGQDA)
-        q = '''SELECT DISTINCT sid, full_load_time FROM %s GROUP BY sid, full_load_time HAVING COUNT(sid) > 1''' % \
-            self.dbconfig['rawtable']
+        q = '''SELECT DISTINCT sid, full_load_time FROM %s GROUP BY sid, full_load_time HAVING COUNT(sid) > 1
+        and sid not in (select distinct sid from %s)''' % \
+            (self.dbconfig['rawtable'], self.dbconfig['aggregatesummary'])
         res = self.execute_query(q)
         if len(res) == 0:
             logger.warning('pre_process: no sids found')
             return
 
         d = dict(res)
+        logger.debug("{0} session(s) to preprocess: sids {1} ".format(len(d.keys()), d.keys()))
         dic = {}
         for sid in d.keys():
             q = '''select remote_ip, session_url, session_start, cpu_percent, mem_percent from %s
@@ -368,6 +361,7 @@ class DBClient:
             sum(rcv_time) as s_rcv, sum(body_bytes) as s_body, sum(syn_time) as s_syn from %s where sid = %d
             group by remote_ip;''' % (self.dbconfig['rawtable'], sid)
             res = self.execute_query(q)
+
             page_dim = 0
             for tup in res:
                 dic[str(sid)]['browser'].append({'ip': tup[0], 'nr_obj': int(tup[1]), 'sum_http': int(tup[2]),
@@ -390,9 +384,10 @@ class DBClient:
         return self.insert_to_aggregate(dic)
 
     def insert_to_aggregate(self, pre_processed):
+        logger.debug("received at insert_to_aggregate: {0}".format(pre_processed))
         table_name_summary = self.dbconfig['aggregatesummary']
         table_name_details = self.dbconfig['aggregatedetails']
-        stub = 'INSERT INTO ' + table_name_summary + ' (%s) values (%s) RETURNING row_id'
+        stub = 'INSERT INTO ' + table_name_summary + ' (%s) values (%s)'
         stub2 = 'INSERT INTO ' + table_name_details + ' (%s) values (%s)'
         for sid, obj in pre_processed.iteritems():
             url = DBClient._unicode_to_ascii(obj['session_url'])
@@ -408,32 +403,26 @@ class DBClient:
             cursor = self.conn.cursor()
             try:
                 cursor.execute(q)
-                res = cursor.fetchone()
-                reference = int(res[0])
+                #res = cursor.fetchone()
+                #reference = int(res[0])
+                self.conn.commit()
             except psycopg2.IntegrityError as e:
                 logger.error("Integrity Error in insert to aggregate {0}".format(e))
-                logger.error("Query: %s" % q)
-                logger.error("Rollback on sid: {0}".format(sid))
-                self.conn.rollback()
                 continue
             except psycopg2.InternalError as i:
                 logger.error("Internal Error in insert to aggregate {0}".format(e))
-                logger.error("Query: %s" % q)
-                logger.error("Rollback sid: {0}".format(sid))
-                self.conn.rollback()
                 continue
 
-            if reference:
-                for dic in (obj['browser']):
-                    s = 'reference_id, base_url, ip, netw_bytes, nr_obj, sum_syn, sum_http, sum_rcv_time'
-                    v = '%d, \'%s\', \'%s\', %d, %d, %d, %d, %d' % (reference, dic['base_url'], dic['ip'],
-                                                                    dic['netw_bytes'], dic['nr_obj'],
-                                                                    dic['sum_syn'], dic['sum_http'],
-                                                                    dic['sum_rcv_time'])
-                    q = stub2 % (s, v)
-                    cursor.execute(q)
-                    self.conn.commit()
-
+            #if reference:
+            for dic in (obj['browser']):
+                s = 'sid, base_url, ip, netw_bytes, nr_obj, sum_syn, sum_http, sum_rcv_time'
+                v = '%d, \'%s\', \'%s\', %d, %d, %d, %d, %d' % (int(sid), dic['base_url'], dic['ip'],
+                                                                dic['netw_bytes'], dic['nr_obj'],
+                                                                dic['sum_syn'], dic['sum_http'],
+                                                                dic['sum_rcv_time'])
+                q = stub2 % (s, v)
+                cursor.execute(q)
+                self.conn.commit()
 
         logger.info('Aggregate tables populated.')
         return True

@@ -86,7 +86,6 @@ if __name__ == '__main__':
             logger.info('Ended browsing run n.%d for %s' % (i, url))
             dbcli.pre_process_raw_table()
 
-
             new_fn = backupdir + '/' + tstat_out_file.split('/')[-1] + '.run%d_%s' % (i, url)
             shutil.copyfile(tstat_out_file, new_fn)  # Quick and dirty not to delete Tstat log
             open(tstat_out_file, 'w').close()
@@ -94,16 +93,16 @@ if __name__ == '__main__':
             os.rename(harfile, new_har)
             logger.debug('Saved plugin file for run n.%d: %s' % (i, new_fn))
             monitor = Monitor(config)
-            monitor.do_measure(ip_dest)
-            #monitor.run_active_measurement(ip_dest)
+            #monitor.do_measure(ip_dest)
+            monitor.run_active_measurement(ip_dest)
             logger.debug('Ended Active probing for run n.%d to url %s' % (i, url))
             for tracefile in [f for f in os.listdir('.') if f.endswith('.traceroute')]:
                 os.remove(tracefile)
                 #new_fn_trace = backupdir + '/' + tracefile + '.run%d' % i
                 #os.rename(tracefile, new_fn_trace)
 
-    s = TstatDaemonThread(config, 'stop')
 
+    s = TstatDaemonThread(config, 'stop')
     jc = JSONClient(config)
     measurements = jc.prepare_data()
     json_path_fname = jc.save_json_file(measurements)
